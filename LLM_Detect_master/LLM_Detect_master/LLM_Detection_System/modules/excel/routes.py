@@ -659,7 +659,7 @@ def excel_quality_upload():
         queue_added = queue_manager.add_task(
             filename=unique_filename,
             filepath=filepath,
-            batch_size=50  # 每批处理50条
+            batch_size=30  # 每批处理30条（从50减少到30，提高完整性）
         )
         
         if queue_added:

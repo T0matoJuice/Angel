@@ -298,8 +298,42 @@ class ExcelQueueManager:
             from io import StringIO
             
             try:
+                # 检查CSV是否有正确的表头
+                lines = quality_result.strip().split('\n')
+                if not lines:
+                    error_msg = "CSV结果为空"
+                    print(f"❌ {error_msg}")
+                    return {'success': False, 'error': error_msg}
+                
+                # 检查第一行是否是表头
+                first_line = lines[0]
+                expected_header = '工单单号,工单性质,判定依据'
+                
+                if not first_line.startswith('工单单号'):
+                    print(f"⚠️  警告: CSV缺少表头，自动添加")
+                    # 添加标准表头
+                    standard_header = '工单单号,工单性质,判定依据,保内保外,批次入库日期,安装日期,购机日期,产品名称,开发主体,故障部位名称,故障组,故障类别,服务项目或故障现象,维修方式,旧件名称,新件名称,来电内容,现场诊断故障现象,处理方案简述或备注'
+                    quality_result = standard_header + '\n' + quality_result
+                
+                
                 df_result = pd.read_csv(StringIO(quality_result), dtype=str, encoding='utf-8')
                 print(f"📝 CSV结果包含 {len(df_result)} 行数据")
+                
+                # 调试：打印CSV的列名
+                print(f"🔍 CSV列名: {df_result.columns.tolist()}")
+                
+                # 调试：打印第一行数据
+                if len(df_result) > 0:
+                    first_row = df_result.iloc[0]
+                    print(f"🔍 第一行数据示例:")
+                    print(f"   工单单号: '{first_row.get('工单单号', 'N/A')}'")
+                    print(f"   工单性质: '{first_row.get('工单性质', 'N/A')}'")
+                
+                # 验证数据行数
+                if len(df_result) != processed_count:
+                    print(f"⚠️  警告: CSV行数({len(df_result)})与处理记录数({processed_count})不一致")
+                    print(f"   可能原因: AI输出不完整或包含额外的空行")
+                
             except Exception as e:
                 error_msg = f"CSV解析失败: {str(e)}"
                 print(f"❌ {error_msg}")
@@ -325,6 +359,10 @@ class ExcelQueueManager:
                         if not work_alone or work_alone == 'nan':
                             continue
                         
+                        # 调试：打印查询条件（只打印前3条）
+                        if index < 3:
+                            print(f"🔍 查询条件[{index}]: workAlone='{work_alone}', filename='{filename}'")
+                        
                         # 查询数据库记录
                         record = WorkorderData.query.filter_by(
                             workAlone=work_alone,
@@ -336,8 +374,12 @@ class ExcelQueueManager:
                             record.workOrderNature = work_order_nature if work_order_nature and work_order_nature != 'nan' else None
                             record.judgmentBasis = judgment_basis if judgment_basis and judgment_basis != 'nan' else None
                             updated_count += 1
+                            if index < 3:
+                                print(f"   ✅ 找到记录，已更新")
                         else:
                             not_found_count += 1
+                            if index < 3:
+                                print(f"   ❌ 未找到记录")
                     
                     # 提交更新
                     db.session.commit()
