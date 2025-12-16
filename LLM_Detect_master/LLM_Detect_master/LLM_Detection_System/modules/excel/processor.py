@@ -753,7 +753,18 @@ CSV格式规范：
 - 判定依据必须详细、明确
 - 不要进行任何主观推断或语义扩展
 
-请开始判断（共{test_row_count}条记录）：
+🚨 **强制要求（必须遵守）：**
+1. **必须输出所有{test_row_count}条记录，一条都不能少！**
+2. **第一行必须是表头行（列名）**
+3. **从第二行开始是数据行，共{test_row_count}行数据**
+4. **总输出行数 = 1（表头）+ {test_row_count}（数据）= {test_row_count + 1}行**
+5. **不要因为记录相似就省略，每条记录都必须独立输出**
+6. **不要添加任何说明文字、总结或解释，只输出纯CSV数据**
+
+
+请开始判断（共{test_row_count}条记录，必须全部输出）：
+
+⚠️ 最后提醒：输出完成后，请确认你输出了{test_row_count + 1}行（1行表头 + {test_row_count}行数据）
 """
 
             print(f"提示词长度: {len(quality_prompt)} 字符")
@@ -770,7 +781,7 @@ CSV格式规范：
                 model=self.model,
                 messages=messages,
                 temperature=0.0,  # 完全确定性，提高准确率
-                max_tokens=16384  # 平衡输出完整性和响应速度
+                max_tokens=24576  # 增加到24576，确保能输出完整结果（原16384）
             )
 
             elapsed_time = time.time() - start_time
@@ -786,6 +797,13 @@ CSV格式规范：
             if quality_result.endswith('```'):
                 quality_result = quality_result[:-3]
             quality_result = quality_result.strip()
+            
+            # 确保CSV有正确的表头
+            lines = quality_result.split('\n')
+            if lines and not lines[0].startswith('工单单号'):
+                print(f"⚠️  警告: AI返回的CSV缺少表头，自动添加")
+                standard_header = '工单单号,工单性质,判定依据,保内保外,批次入库日期,安装日期,购机日期,产品名称,开发主体,故障部位名称,故障组,故障类别,服务项目或故障现象,维修方式,旧件名称,新件名称,来电内容,现场诊断故障现象,处理方案简述或备注'
+                quality_result = standard_header + '\n' + quality_result
 
             print(f"✅ 工单性质判断完成")
             print(f"耗时: {elapsed_time:.2f} 秒")
@@ -811,6 +829,17 @@ CSV格式规范：
             final_lines = quality_result.split('\n')
             final_row_count = len([line for line in final_lines if line.strip()]) - 1  # 减去表头
             print(f"最终输出行数: {final_row_count} 行")
+            
+            # 验证输出完整性
+            if final_row_count < test_row_count:
+                missing_count = test_row_count - final_row_count
+                print(f"⚠️  警告: 输出不完整！缺少 {missing_count} 条记录 ({final_row_count}/{test_row_count})")
+            elif final_row_count > test_row_count:
+                extra_count = final_row_count - test_row_count
+                print(f"⚠️  警告: 输出行数超出预期！多出 {extra_count} 条记录")
+            else:
+                print(f"✅ 输出完整性验证通过")
+            
             print("-"*80)
 
             # 合并token使用情况
