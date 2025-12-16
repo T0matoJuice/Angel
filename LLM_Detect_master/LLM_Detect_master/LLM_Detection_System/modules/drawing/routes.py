@@ -36,8 +36,9 @@ def drawing_detection():
 def drawing_textbook():
     """制图规范教材下载"""
 
-    # 1. 设定绝对路径
-    base_dir = "/app/LLM_Detection_System/data"
+    # 1. 使用 Flask 的 root_path 动态获取项目根目录
+    # 这样在 Windows 和 Linux 环境下都能正常工作
+    base_dir = os.path.join(current_app.root_path, "data")
 
     # 2. 使用 glob 进行模糊搜索
     # 含义：在 data 目录下找所有名字里包含 "机械制图教材" 且以 .pdf 结尾的文件
