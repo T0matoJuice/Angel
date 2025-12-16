@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>机械制图规范检测系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .back-btn:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        /* 左侧面板 */
+        .left-panel {
+            width: 50%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* PDF预览区域 */
+        .pdf-preview-area {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-header {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .pdf-preview {
+            flex: 1;
+            border: 3px dashed #e0e0e0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fafafa;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pdf-preview.has-content {
+            border-color: #4CAF50;
+            border-style: solid;
+        }
+
+        .pdf-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pdf-preview img:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .upload-placeholder {
+            text-align: center;
+            color: #999;
+            font-size: 16px;
+        }
+
+        .upload-placeholder i {
+            font-size: 48px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        /* 控制按钮区域 */
+        .controls {
+            padding: 25px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            min-width: 120px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover:before {
+            left: 100%;
+        }
+
+        .btn-upload {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-start {
+            background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+            color: white;
+        }
+
+        .btn-stop {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .btn-reset {
+            background: linear-gradient(45deg, #ffa726, #ffcc02);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .status-text {
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* 右侧面板 */
+        .right-panel {
+            width: 50%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .result-header {
+            padding: 25px 25px 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+        }
+
+        .result-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .result-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        /* 检测结果显示 */
+        .result-conclusion {
+            padding: 30px 25px;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .conclusion-text {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .conclusion-符合 { color: #28a745; }
+        .conclusion-不符合 { color: #dc3545; }
+        .conclusion-基本符合 { color: #ffc107; }
+        .conclusion-基本不符合 { color: #fd7e14; }
+
+        .conclusion-subtitle {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .download-section {
+            padding: 20px 25px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            text-align: center;
+        }
+
+        .download-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .download-btn:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .download-btn:hover:before {
+            left: 100%;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(40, 167, 69, 0.3);
+        }
+
+
+
+        /* 详细报告区域 */
+        .result-details {
+            flex: 1;
+            padding: 25px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .details-header {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .report-content {
+            flex: 1;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #495057;
+        }
+
+        .report-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .report-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .report-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        .report-content::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .waiting-message {
+            text-align: center;
+            color: #999;
+            font-size: 16px;
+            margin-top: 100px;
+        }
+
+        .detecting-message {
+            text-align: center;
+            color: #667eea;
+            font-size: 16px;
+            margin-top: 100px;
+        }
+
+        .detecting-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 图片放大模态框样式 */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .image-modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            position: relative;
+            max-width: 95%;
+            max-height: 95%;
+            margin: auto;
+        }
+
+        .modal-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .close-modal {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .close-modal:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .modal-info {
+            position: absolute;
+            bottom: -50px;
+            left: 0;
+            right: 0;
+            color: white;
+            text-align: center;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* 上传模态框样式 */
+        .upload-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .upload-modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .upload-modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .upload-modal-header h3 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .close-upload-modal {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .close-upload-modal:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .upload-modal-body {
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .required-mark {
+            color: #e74c3c;
+            font-weight: bold;
+            margin-right: 2px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-input.error {
+            border-color: #e74c3c;
+        }
+
+        .error-message {
+            display: block;
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 5px;
+            min-height: 18px;
+        }
+
+        .file-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .file-select-btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .file-select-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .selected-file-name {
+            color: #666;
+            font-size: 14px;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .selected-file-name.has-file {
+            color: #27ae60;
+            font-weight: 600;
+        }
+
+        .form-tips {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+
+        .form-tips p {
+            margin: 0;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .upload-modal-footer {
+            padding: 15px 25px;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .btn-cancel, .btn-confirm {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cancel {
+            background: #e0e0e0;
+            color: #666;
+        }
+
+        .btn-cancel:hover {
+            background: #d0d0d0;
+        }
+
+        .btn-confirm {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-confirm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                height: auto;
+                min-height: 100vh;
+            }
+            
+            .left-panel, .right-panel {
+                width: 100%;
+            }
+            
+            .btn-group {
+                flex-wrap: wrap;
+            }
+            
+            .conclusion-text {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="/drawing" class="back-btn">
+        <span>←</span>
+        <span>返回制图检测系统</span>
+    </a>
+
+    <div class="container">
+        <!-- 左侧面板 -->
+        <div class="left-panel">
+            <!-- PDF预览区域 -->
+            <div class="pdf-preview-area">
+                <div class="preview-header">📄 PDF文件预览</div>
+                <div class="pdf-preview" id="pdfPreview">
+                    <div class="upload-placeholder">
+                        <i>📁</i>
+                        <div>请上传PDF文件进行检测</div>
+                        <small style="color: #ccc; margin-top: 10px; display: block;">支持机械制图文件格式</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 控制按钮区域 -->
+            <div class="controls">
+                <div class="btn-group">
+                    <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+                    <button class="btn btn-upload" onclick="openUploadModal()">
+                        📤 选择工图文件（PDF格式）
+                    </button>
+                    <!-- 上传后自动检测，不再需要手动点击"开始检测"按钮 -->
+                    <button class="btn btn-stop" id="stopBtn" onclick="stopDetection()" style="display:none;">
+                        ⏹️ 停止查询
+                    </button>
+                    <button class="btn btn-reset" id="resetBtn" onclick="resetAll()" style="display:none;">
+                        🔄 重新上传
+                    </button>
+                </div>
+                <div class="status-text" id="statusText">等待上传PDF文件</div>
+            </div>
+        </div>
+        
+        <!-- 右侧面板 -->
+        <div class="right-panel">
+            <div class="result-header">
+                <h2>🎯 检测结果</h2>
+                <p>基于机械制图规范标准的智能分析</p>
+            </div>
+            
+            <!-- 检测结论 -->
+            <div class="result-conclusion" id="resultConclusion">
+                <div class="waiting-message">等待开始检测...</div>
+            </div>
+            
+            <!-- 详细报告 -->
+            <div class="result-details">
+                <div class="details-header">📋 详细分析报告</div>
+                <div class="report-content" id="reportContent">
+                    <div class="waiting-message">上传PDF文件并开始检测后，这里将显示详细的分析报告</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 图片放大模态框 -->
+    <div id="imageModal" class="image-modal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <img id="modalImage" class="modal-image" src="" alt="PDF预览放大图">
+            <div class="modal-info">
+                <p>点击图片外区域或右上角 × 关闭</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 文件上传信息模态框 -->
+    <div id="uploadModal" class="upload-modal" style="display: none;">
+        <div class="upload-modal-content" onclick="event.stopPropagation()">
+            <div class="upload-modal-header">
+                <h3>📤 上传工程图纸</h3>
+                <span class="close-upload-modal" onclick="closeUploadModal()">&times;</span>
+            </div>
+            <div class="upload-modal-body">
+                <!-- 文件选择区域 -->
+                <div class="form-group">
+                    <label for="modalFileInput">
+                        <span class="required-mark">*</span> 选择PDF文件
+                    </label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="modalFileInput" accept=".pdf" style="display: none;">
+                        <button class="file-select-btn" onclick="document.getElementById('modalFileInput').click()">
+                            📁 选择文件
+                        </button>
+                        <span id="selectedFileName" class="selected-file-name">未选择文件</span>
+                    </div>
+                </div>
+
+                <!-- 检入者输入框 -->
+                <div class="form-group">
+                    <label for="checkerNameInput">
+                        <span class="required-mark">*</span> 检入者
+                    </label>
+                    <input type="text" id="checkerNameInput" class="form-input" placeholder="请输入检入者姓名">
+                    <span class="error-message" id="checkerNameError"></span>
+                </div>
+
+                <!-- 版本输入框 -->
+                <div class="form-group">
+                    <label for="versionInput">
+                        <span class="required-mark">*</span> 版本
+                    </label>
+                    <input type="text" id="versionInput" class="form-input" placeholder="请输入版本号（如：V1.0）">
+                    <span class="error-message" id="versionError"></span>
+                </div>
+
+                <!-- 提示信息 -->
+                <div class="form-tips">
+                    <p>💡 提示：所有标记 <span class="required-mark">*</span> 的字段为必填项</p>
+                </div>
+            </div>
+            <div class="upload-modal-footer">
+                <button class="btn-cancel" onclick="closeUploadModal()">取消</button>
+                <button class="btn-confirm" onclick="confirmUpload()">确认上传</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentRecordId = '';  // 当前检测记录ID
+        let isDetecting = false;  // 检测状态标志
+        let selectedFile = null;  // 模态框中选择的文件
+        let statusPollInterval = null;  // 状态轮询定时器
+
+        // 旧的文件输入框保持隐藏（不再使用）
+        document.getElementById('fileInput').style.display = 'none';
+
+        // 模态框中的文件选择处理
+        document.getElementById('modalFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.type !== 'application/pdf') {
+                alert('⚠️ 只支持PDF文件格式！');
+                this.value = '';  // 清空选择
+                return;
+            }
+
+            selectedFile = file;
+            const fileNameSpan = document.getElementById('selectedFileName');
+            fileNameSpan.textContent = file.name;
+            fileNameSpan.classList.add('has-file');
+        });
+
+        // 打开上传模态框
+        function openUploadModal() {
+            const modal = document.getElementById('uploadModal');
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+
+            // 重置表单
+            selectedFile = null;
+            document.getElementById('modalFileInput').value = '';
+            document.getElementById('selectedFileName').textContent = '未选择文件';
+            document.getElementById('selectedFileName').classList.remove('has-file');
+            document.getElementById('checkerNameInput').value = '';
+            document.getElementById('versionInput').value = '';
+            clearErrors();
+        }
+
+        // 关闭上传模态框
+        function closeUploadModal() {
+            const modal = document.getElementById('uploadModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // 清除错误提示
+        function clearErrors() {
+            document.getElementById('checkerNameError').textContent = '';
+            document.getElementById('versionError').textContent = '';
+            document.getElementById('checkerNameInput').classList.remove('error');
+            document.getElementById('versionInput').classList.remove('error');
+        }
+
+        // 验证表单
+        function validateForm() {
+            clearErrors();
+            let isValid = true;
+
+            // 验证文件
+            if (!selectedFile) {
+                alert('⚠️ 请选择PDF文件！');
+                return false;
+            }
+
+            // 验证检入者
+            const checkerName = document.getElementById('checkerNameInput').value.trim();
+            if (!checkerName) {
+                document.getElementById('checkerNameError').textContent = '请输入检入者姓名';
+                document.getElementById('checkerNameInput').classList.add('error');
+                isValid = false;
+            }
+
+            // 验证版本
+            const version = document.getElementById('versionInput').value.trim();
+            if (!version) {
+                document.getElementById('versionError').textContent = '请输入版本号';
+                document.getElementById('versionInput').classList.add('error');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // 确认上传
+        function confirmUpload() {
+            if (!validateForm()) {
+                return;
+            }
+
+            const checkerName = document.getElementById('checkerNameInput').value.trim();
+            const version = document.getElementById('versionInput').value.trim();
+
+            // 关闭模态框
+            closeUploadModal();
+
+            // 上传文件
+            uploadFile(selectedFile, checkerName, version);
+        }
+
+        // 上传文件到服务器（新版本：上传后自动开始检测）
+        function uploadFile(file, checkerName, version) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('checker_name', checkerName);
+            formData.append('version', version);
+
+            updateStatus('正在上传文件...', 'uploading');
+
+            fetch('/drawing/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentRecordId = data.record_id;
+                    updateStatus(`✅ 文件上传成功，检测任务已加入队列`, 'success');
+
+                    // 加载预览
+                    loadPreview(data.preview_url);
+
+                    // 自动开始检测（实际上是开始轮询状态）
+                    startDetection();
+                } else {
+                    alert('❌ 上传失败: ' + data.error);
+                    updateStatus('上传失败，请重试', 'error');
+                }
+            })
+            .catch(error => {
+                alert('❌ 上传失败: ' + error.message);
+                updateStatus('上传失败，请重试', 'error');
+            });
+        }
+        
+        // 加载PDF预览
+        function loadPreview(previewUrl) {
+            const preview = document.getElementById('pdfPreview');
+            preview.innerHTML = '<div style="color: #667eea;">📄 正在生成预览...</div>';
+            
+            fetch(previewUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.image_data) {
+                    preview.innerHTML = `<img src="${data.image_data}" alt="PDF预览" onclick="openImageModal('${data.image_data}')" title="点击放大查看">`;
+                    preview.classList.add('has-content');
+                } else {
+                    preview.innerHTML = '<div style="color: #999;">📄 预览生成失败<br><small>不影响检测功能</small></div>';
+                }
+            })
+            .catch(error => {
+                preview.innerHTML = '<div style="color: #999;">📄 预览加载失败<br><small>不影响检测功能</small></div>';
+            });
+        }
+        
+        // 开始检测（新版本：启动状态轮询）
+        function startDetection() {
+            if (!currentRecordId || isDetecting) return;
+
+            isDetecting = true;
+            updateButtons('detecting');
+
+            // 显示检测中状态
+            document.getElementById('resultConclusion').innerHTML = `
+                <div class="detecting-message">
+                    <div class="detecting-spinner"></div>
+                    正在排队等待检测...
+                </div>
+            `;
+            document.getElementById('reportContent').innerHTML = `
+                <div class="detecting-message">
+                    <div class="detecting-spinner"></div>
+                    检测任务已加入队列，请稍候...
+                </div>
+            `;
+
+            // 开始轮询状态
+            pollDetectionStatus();
+        }
+
+        // 轮询检测状态
+        function pollDetectionStatus() {
+            // 清除之前的定时器
+            if (statusPollInterval) {
+                clearInterval(statusPollInterval);
+            }
+
+            // 立即查询一次
+            checkDetectionStatus();
+
+            // 每2秒查询一次状态
+            statusPollInterval = setInterval(checkDetectionStatus, 2000);
+        }
+
+        // 检查检测状态
+        function checkDetectionStatus() {
+            fetch(`/drawing/api/status/${currentRecordId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.error || '查询状态失败');
+                }
+
+                const status = data.status;
+
+                if (status === 'pending') {
+                    // 排队中
+                    updateStatus(`⏳ 排队中... (队列长度: ${data.queue_size || 0})`, 'detecting');
+                    document.getElementById('resultConclusion').innerHTML = `
+                        <div class="detecting-message">
+                            <div class="detecting-spinner"></div>
+                            排队中，前面还有 ${data.queue_size || 0} 个任务
+                        </div>
+                    `;
+                } else if (status === 'processing') {
+                    // 检测中
+                    updateStatus('🔍 正在进行智能检测...', 'detecting');
+                    document.getElementById('resultConclusion').innerHTML = `
+                        <div class="detecting-message">
+                            <div class="detecting-spinner"></div>
+                            正在分析制图规范...
+                        </div>
+                    `;
+                    document.getElementById('reportContent').innerHTML = `
+                        <div class="detecting-message">
+                            <div class="detecting-spinner"></div>
+                            大模型正在对照机械制图标准进行详细分析，请稍候...
+                        </div>
+                    `;
+                } else if (status === 'completed') {
+                    // 检测完成
+                    clearInterval(statusPollInterval);
+                    isDetecting = false;
+                    showResult(data.conclusion, data.detailed_report);
+                    updateStatus('✅ 检测完成', 'completed');
+                    updateButtons('completed');
+                } else if (status === 'failed') {
+                    // 检测失败
+                    clearInterval(statusPollInterval);
+                    isDetecting = false;
+                    alert('❌ 检测失败: ' + (data.error_message || '未知错误'));
+                    updateStatus('检测失败', 'error');
+                    updateButtons('error');
+                    document.getElementById('resultConclusion').innerHTML = `
+                        <div style="color: #dc3545; font-size: 24px; font-weight: 600;">
+                            ❌ 检测失败
+                        </div>
+                    `;
+                    document.getElementById('reportContent').innerHTML = `
+                        <div style="color: #666; text-align: center; margin-top: 50px;">
+                            ${data.error_message || '检测过程出现错误'}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('查询状态失败:', error);
+                // 不中断轮询，继续尝试
+            });
+        }
+        
+        // 结束检测（停止轮询）
+        function stopDetection() {
+            if (isDetecting) {
+                // 停止轮询
+                if (statusPollInterval) {
+                    clearInterval(statusPollInterval);
+                    statusPollInterval = null;
+                }
+
+                isDetecting = false;
+                updateStatus('⏹️ 已停止查询状态', 'stopped');
+                updateButtons('stopped');
+
+                document.getElementById('resultConclusion').innerHTML = `
+                    <div style="color: #ffc107; font-size: 24px; font-weight: 600;">
+                        ⏹️ 已停止查询
+                    </div>
+                `;
+                document.getElementById('reportContent').innerHTML = `
+                    <div style="color: #666; text-align: center; margin-top: 50px;">
+                        已停止查询检测状态，检测任务仍在后台继续执行
+                    </div>
+                `;
+            }
+        }
+        
+        // 重新上传
+        function resetAll() {
+            // 停止轮询
+            if (statusPollInterval) {
+                clearInterval(statusPollInterval);
+                statusPollInterval = null;
+            }
+
+            currentRecordId = '';
+            isDetecting = false;
+
+            // 清空文件输入
+            document.getElementById('fileInput').value = '';
+
+            // 重置PDF预览
+            const preview = document.getElementById('pdfPreview');
+            preview.innerHTML = `
+                <div class="upload-placeholder">
+                    <i>📁</i>
+                    <div>请上传PDF文件进行检测</div>
+                    <small style="color: #ccc; margin-top: 10px; display: block;">支持机械制图文件格式</small>
+                </div>
+            `;
+            preview.classList.remove('has-content');
+
+            // 重置检测结果
+            document.getElementById('resultConclusion').innerHTML = `
+                <div class="waiting-message">等待开始检测...</div>
+            `;
+            document.getElementById('reportContent').innerHTML = `
+                <div class="waiting-message">上传PDF文件后将自动开始检测</div>
+            `;
+
+            // 移除下载区域
+            const downloadSection = document.querySelector('.download-section');
+            if (downloadSection) {
+                downloadSection.remove();
+            }
+
+            // 重置状态和按钮
+            updateStatus('等待上传PDF文件', 'waiting');
+            updateButtons('initial');
+        }
+        
+        // 显示检测结果
+        function showResult(conclusion, report) {
+            // 显示检测结论
+            document.getElementById('resultConclusion').innerHTML = `
+                <div class="conclusion-text conclusion-${conclusion}">${conclusion}</div>
+                <div class="conclusion-subtitle">检测完成时间: ${new Date().toLocaleString()}</div>
+            `;
+
+            // 显示详细报告
+            const formattedReport = report.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            document.getElementById('reportContent').innerHTML = formattedReport;
+
+            // 添加下载区域
+            addDownloadSection(conclusion, report);
+        }
+
+        // 添加下载区域
+        function addDownloadSection(conclusion, report) {
+            const rightPanel = document.querySelector('.right-panel');
+
+            // 检查是否已存在下载区域
+            let downloadSection = document.querySelector('.download-section');
+            if (!downloadSection) {
+                downloadSection = document.createElement('div');
+                downloadSection.className = 'download-section';
+                rightPanel.appendChild(downloadSection);
+            }
+
+            downloadSection.innerHTML = `
+                <h4 style="margin-bottom: 15px; color: #333;">📥 下载检测报告</h4>
+                <button class="download-btn" onclick="downloadReport('txt', '${conclusion}')">
+                    📄 下载TXT格式
+                </button>
+            `;
+        }
+
+        // 下载报告
+        function downloadReport(format, conclusion) {
+            const reportContent = document.getElementById('reportContent').innerText;
+            const timestamp = new Date().toLocaleString();
+
+            const reportData = {
+                conclusion: conclusion,
+                content: reportContent,
+                timestamp: timestamp,
+                format: format
+            };
+
+            // 发送下载请求
+            fetch('/drawing/download-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reportData)
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    throw new Error('下载失败');
+                }
+            })
+            .then(blob => {
+                // 创建下载链接
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `制图检测报告_${new Date().toISOString().slice(0,10)}.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            })
+            .catch(error => {
+                alert('下载失败: ' + error.message);
+            });
+        }
+
+        // PDF预览图片放大功能
+        function openImageModal(imageSrc) {
+            const modal = document.getElementById('imageModal');
+            const modalImage = document.getElementById('modalImage');
+
+            // 设置放大图片源并显示模态框
+            modalImage.src = imageSrc;
+            modal.classList.add('show');
+
+            // 防止背景页面滚动
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 关闭图片放大模态框
+        function closeModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.remove('show');
+
+            // 恢复背景页面滚动
+            document.body.style.overflow = 'auto';
+        }
+
+        // 按ESC键关闭模态框
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+                closeUploadModal();
+            }
+        });
+
+        // 更新状态文本
+        function updateStatus(text, type) {
+            const statusElement = document.getElementById('statusText');
+            statusElement.textContent = text;
+            
+            // 根据状态类型设置颜色
+            const colors = {
+                'waiting': '#666',
+                'uploading': '#667eea',
+                'success': '#28a745',
+                'detecting': '#667eea',
+                'completed': '#28a745',
+                'error': '#dc3545',
+                'stopped': '#ffc107'
+            };
+            statusElement.style.color = colors[type] || '#666';
+        }
+        
+        // 更新按钮状态
+        function updateButtons(state) {
+            const stopBtn = document.getElementById('stopBtn');
+            const resetBtn = document.getElementById('resetBtn');
+
+            switch(state) {
+                case 'initial':
+                    stopBtn.style.display = 'none';
+                    resetBtn.style.display = 'none';
+                    break;
+                case 'detecting':
+                    stopBtn.style.display = 'inline-block';
+                    resetBtn.style.display = 'none';
+                    break;
+                case 'completed':
+                case 'stopped':
+                case 'error':
+                    stopBtn.style.display = 'none';
+                    resetBtn.style.display = 'inline-block';
+                    break;
+            }
+        }
+    </script>
+</body>
+</html>

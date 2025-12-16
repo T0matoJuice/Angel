@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工单处理历史记录</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .back-btn:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #17a2b8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #666;
+        }
+
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        .start-detection-btn {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .start-detection-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(23, 162, 184, 0.4);
+        }
+
+        .history-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .history-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid #17a2b8;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .history-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .history-filename {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        .history-time {
+            font-size: 14px;
+            color: #666;
+            margin-left: 20px;
+        }
+
+        .history-status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 15px;
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .history-info {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .view-detail-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .view-detail-btn:hover {
+            background: #138496;
+        }
+
+        .download-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: #5a6268;
+        }
+
+        /* 详情模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 3% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 95%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow: hidden;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close:hover {
+            opacity: 0.7;
+        }
+
+        .modal-body {
+            padding: 30px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .detail-section {
+            margin-bottom: 25px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .detail-content {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+            line-height: 1.6;
+        }
+
+        .download-section {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .download-result-btn {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .download-result-btn:hover {
+            background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .history-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .history-time {
+                margin-left: 0;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+            }
+
+            .modal-body {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="/excel" class="back-btn">
+        <span>←</span>
+        <span>返回质量工单检测系统</span>
+    </a>
+
+    <div class="container">
+        <div class="header">
+            <h1>📋 工单处理历史记录</h1>
+            <p>查看最近的工单处理记录和结果文件</p>
+        </div>
+
+        <div class="content">
+            <div id="historyContent">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>正在加载历史记录...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详情模态框 -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">处理详情</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- 详情内容将在这里动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载完成后获取历史记录
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHistory();
+        });
+
+        // 加载历史记录
+        function loadHistory() {
+            fetch('/excel/api/history')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayHistory(data.records);
+                    } else {
+                        showError('获取历史记录失败: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    showError('网络错误: ' + error.message);
+                });
+        }
+
+        // 显示历史记录列表
+        function displayHistory(records) {
+            const content = document.getElementById('historyContent');
+            
+            if (!records || records.length === 0) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📊</div>
+                        <h3>暂无处理记录</h3>
+                        <p>您还没有进行过工单处理，开始第一次处理吧！</p>
+                        <a href="/excel/detection" class="start-detection-btn">开始处理</a>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="history-list">';
+            
+            records.forEach(record => {
+                html += `
+                    <div class="history-item" onclick="viewDetail('${record.id}')">
+                        <div class="history-header">
+                            <div class="history-filename">${record.original_filename}</div>
+                            <div>
+                                <span class="history-status">处理完成</span>
+                                <div class="history-time">${record.timestamp}</div>
+                            </div>
+                        </div>
+                        <div class="history-info">处理行数: ${record.rows_processed} 行 | 结果文件: ${record.filename}</div>
+                        <div class="button-group">
+                            <button class="view-detail-btn" onclick="event.stopPropagation(); viewDetail('${record.id}')">
+                                查看详情
+                            </button>
+                            <button class="download-btn" onclick="event.stopPropagation(); downloadResult('${record.filename}')">
+                                📥 下载结果
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            content.innerHTML = html;
+        }
+
+        // 查看详情
+        function viewDetail(recordId) {
+            fetch(`/excel/api/history/${recordId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showDetailModal(data.record);
+                    } else {
+                        alert('获取详情失败: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('网络错误: ' + error.message);
+                });
+        }
+
+        // 显示详情模态框
+        function showDetailModal(record) {
+            const modal = document.getElementById('detailModal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+
+            title.textContent = `处理详情 - ${record.original_filename}`;
+            
+            body.innerHTML = `
+                <div class="detail-section">
+                    <div class="detail-label">原始文件名</div>
+                    <div class="detail-content">${record.original_filename}</div>
+                </div>
+                
+                <div class="detail-section">
+                    <div class="detail-label">处理时间</div>
+                    <div class="detail-content">${record.timestamp}</div>
+                </div>
+                
+                <div class="detail-section">
+                    <div class="detail-label">处理状态</div>
+                    <div class="detail-content">处理完成</div>
+                </div>
+                
+                <div class="detail-section">
+                    <div class="detail-label">处理结果</div>
+                    <div class="detail-content">成功处理 ${record.rows_processed} 行数据</div>
+                </div>
+                
+                <div class="detail-section">
+                    <div class="detail-label">结果文件</div>
+                    <div class="detail-content">${record.filename}</div>
+                </div>
+                
+                <div class="download-section">
+                    <button class="download-result-btn" onclick="downloadResult('${record.filename}')">
+                        📥 下载处理结果
+                    </button>
+                </div>
+            `;
+
+            modal.style.display = 'block';
+        }
+
+        // 下载结果文件
+        function downloadResult(filename) {
+            window.location.href = `/excel/download/${filename}`;
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('detailModal').style.display = 'none';
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('detailModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            const content = document.getElementById('historyContent');
+            content.innerHTML = `
+                <div class="empty-state">
+                    <div class="icon">❌</div>
+                    <h3>加载失败</h3>
+                    <p>${message}</p>
+                    <button class="start-detection-btn" onclick="loadHistory()">重试</button>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

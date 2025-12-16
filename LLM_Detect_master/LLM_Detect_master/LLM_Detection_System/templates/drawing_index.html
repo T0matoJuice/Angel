@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>机械制图规范检测系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            padding: 60px 50px;
+            text-align: center;
+            max-width: 900px;
+            width: 95%;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            margin-bottom: 50px;
+        }
+
+        .title {
+            font-size: 36px;
+            font-weight: 800;
+            color: #333;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: #666;
+            font-weight: 400;
+            line-height: 1.6;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            margin-top: 40px;
+        }
+
+        .option-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 25px 40px;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-decoration: none;
+            display: block;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .option-btn:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .option-btn:hover:before {
+            left: 100%;
+        }
+
+        .option-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        .option-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .option-btn .icon {
+            font-size: 28px;
+            margin-right: 15px;
+            vertical-align: middle;
+        }
+
+        .option-btn .text {
+            vertical-align: middle;
+        }
+
+        .option-btn .description {
+            display: block;
+            font-size: 14px;
+            font-weight: 400;
+            opacity: 0.9;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        /* 不同按钮的渐变色 */
+        .btn-detection {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-detection:hover {
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-textbook {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            box-shadow: 0 8px 25px rgba(86, 171, 47, 0.3);
+        }
+
+        .btn-textbook:hover {
+            box-shadow: 0 12px 35px rgba(86, 171, 47, 0.4);
+        }
+
+        .btn-history {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
+        }
+
+        .btn-history:hover {
+            box-shadow: 0 12px 35px rgba(74, 144, 226, 0.4);
+        }
+
+        .btn-standard {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-standard:hover {
+            box-shadow: 0 12px 35px rgba(255, 107, 107, 0.4);
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #e0e0e0;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .version {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 40px 30px;
+                margin: 20px;
+            }
+
+            .title {
+                font-size: 28px;
+            }
+
+            .subtitle {
+                font-size: 16px;
+            }
+
+            .option-btn {
+                padding: 20px 30px;
+                font-size: 18px;
+            }
+
+            .option-btn .icon {
+                font-size: 24px;
+                margin-right: 12px;
+            }
+
+            .option-btn .description {
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-container {
+                padding: 30px 20px;
+            }
+
+            .title {
+                font-size: 24px;
+            }
+
+            .option-btn {
+                padding: 18px 25px;
+                font-size: 16px;
+            }
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-btn">
+        <span>←</span>
+        <span>返回主页</span>
+    </a>
+
+    <div class="main-container">
+        <div class="header">
+            <h1 class="title">🔧 机械制图规范检测系统</h1>
+            <p class="subtitle">
+                基于大模型技术的智能制图规范检测平台<br>
+                提供专业的机械制图标准化检测分析服务
+            </p>
+        </div>
+
+        <div class="options-container">
+            <a href="/drawing/detection" class="option-btn btn-detection" onclick="showLoading(this)">
+                <span class="icon">🔍</span>
+                <span class="text">检测工图</span>
+                <span class="description">上传您的机械制图文件，进行智能规范检测分析</span>
+            </a>
+
+            <a href="/drawing/textbook" class="option-btn btn-textbook" onclick="showLoading(this)">
+                <span class="icon">📚</span>
+                <span class="text">制图规范</span>
+                <span class="description">查看机械制图教材，学习标准制图规范要求</span>
+            </a>
+
+            <a href="/drawing/history" class="option-btn btn-history" onclick="showLoading(this)">
+                <span class="icon">📋</span>
+                <span class="text">检测历史</span>
+                <span class="description">查看最近的制图检测历史记录和详细报告</span>
+            </a>
+        </div>
+
+        <div class="footer">
+            <p>🎯 专业 · 准确 · 高效</p>
+            <p class="version">Version 1.0 | Powered by Jiaoyunhuizhi Technology</p>
+        </div>
+    </div>
+
+    <script>
+        function showLoading(element) {
+            // 添加加载动画
+            const textSpan = element.querySelector('.text');
+            const originalText = textSpan.textContent;
+
+            // 禁用按钮
+            element.style.pointerEvents = 'none';
+            element.style.opacity = '0.8';
+
+            // 添加加载动画
+            textSpan.innerHTML = originalText + '<span class="loading"></span>';
+
+            // 延迟跳转，让用户看到加载效果
+            setTimeout(() => {
+                window.location.href = element.href;
+            }, 500);
+
+            // 阻止默认跳转
+            return false;
+        }
+
+        // 重置所有按钮状态
+        function resetAllButtons() {
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach(btn => {
+                const textSpan = btn.querySelector('.text');
+                const loadingSpan = textSpan.querySelector('.loading');
+
+                if (loadingSpan) {
+                    loadingSpan.remove();
+                }
+
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+            });
+        }
+
+        // 页面加载完成后的动画效果
+        document.addEventListener('DOMContentLoaded', function() {
+            // 首先重置所有按钮状态
+            resetAllButtons();
+
+            const buttons = document.querySelectorAll('.option-btn');
+            buttons.forEach((btn, index) => {
+                btn.style.opacity = '0';
+                btn.style.transform = 'translateY(20px)';
+
+                setTimeout(() => {
+                    btn.style.transition = 'all 0.6s ease';
+                    btn.style.opacity = '1';
+                    btn.style.transform = 'translateY(0)';
+                }, 200 + index * 150);
+            });
+        });
+
+        // 页面显示时重置按钮状态（处理浏览器后退）
+        window.addEventListener('pageshow', function(event) {
+            // 如果是从缓存中恢复的页面，重置按钮状态
+            if (event.persisted) {
+                resetAllButtons();
+            }
+        });
+
+        // 页面可见性变化时重置按钮状态
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                resetAllButtons();
+            }
+        });
+
+        // 阻止链接的默认行为，使用JavaScript控制跳转
+        document.querySelectorAll('.option-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                // 检查按钮是否已经在加载状态
+                const textSpan = this.querySelector('.text');
+                const loadingSpan = textSpan.querySelector('.loading');
+
+                if (!loadingSpan) {
+                    showLoading(this);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+Access Token 信息
+======================================================================
+
+获取时间: 2025-11-19 13:16:51
+Client ID: api_test_client_tomato
+有效期: 604800秒 (1小时)
+
+Access Token:
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRfaWQiOiJhcGlfdGVzdF9jbGllbnRfdG9tYXRvIiwic2NvcGVzIjpbIioiXSwiZXhwIjoxNzY0MTM0MjA4LCJpYXQiOjE3NjM1Mjk0MDgsInR5cGUiOiJhY2Nlc3NfdG9rZW4ifQ.azsXzPViJeS6DzJN1tmcIKrCefuJUTrKNz8EfsO--gM
+
+使用方法:
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjbGllbnRfaWQiOiJhcGlfdGVzdF9jbGllbnRfdG9tYXRvIiwic2NvcGVzIjpbIioiXSwiZXhwIjoxNzY0MTM0MjA4LCJpYXQiOjE3NjM1Mjk0MDgsInR5cGUiOiJhY2Nlc3NfdG9rZW4ifQ.azsXzPViJeS6DzJN1tmcIKrCefuJUTrKNz8EfsO--gM

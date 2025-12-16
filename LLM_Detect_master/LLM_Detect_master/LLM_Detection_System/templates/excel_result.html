@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>检测结果 - 质量工单问题点检测</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .back-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #28a745, #20c997);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .result-info {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin: 8px 0;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 180px);
+            min-height: 600px;
+        }
+
+        .left-panel {
+            flex: 0 0 65%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .right-panel {
+            flex: 0 0 35%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .panel-header h3 {
+            color: #333;
+            font-size: 1.3em;
+        }
+
+        .table-container {
+            flex: 1;
+            overflow: hidden;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: white;
+        }
+
+        .table-wrapper {
+            height: 100%;
+            overflow: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85em;
+        }
+
+        .data-table th {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .data-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #eee;
+            border-right: 1px solid #eee;
+            vertical-align: top;
+            word-wrap: break-word;
+        }
+
+        .left-panel .data-table td {
+            max-width: 150px;
+        }
+
+        .right-panel .data-table td {
+            max-width: 120px;
+        }
+
+        .data-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .data-table tr:hover {
+            background: #f8fff9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #28a745;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .actions {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-top: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .action-button {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .action-button.secondary {
+            background: linear-gradient(45deg, #6c757d, #495057);
+        }
+
+        .action-button.secondary:hover {
+            box-shadow: 0 8px 15px rgba(108, 117, 125, 0.3);
+        }
+
+
+        @media (max-width: 1200px) {
+            .main-container {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .left-panel, .right-panel {
+                flex: none;
+                height: 400px;
+            }
+            
+            .left-panel {
+                margin-bottom: 20px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.5em;
+            }
+            
+            .left-panel, .right-panel {
+                padding: 15px;
+                height: 350px;
+            }
+            
+            .data-table {
+                font-size: 0.75em;
+            }
+            
+            .data-table th,
+            .data-table td {
+                padding: 8px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="/excel" class="back-btn">
+        <span>←</span>
+        <span>返回质量工单检测系统</span>
+    </a>
+
+    <div class="header">
+        <h1>🎯 检测结果</h1>
+        <div class="result-info" id="resultInfo">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>大模型正在处理中，请稍候...</p>
+            </div>
+        </div>
+        <div class="processing-time" id="processingTime" style="display: none; margin-top: 15px; padding: 10px; background: rgba(32, 201, 151, 0.1); border-radius: 8px; border-left: 4px solid #20c997;">
+            <strong>⏱️ 处理耗时:</strong> <span id="timeDisplay">0秒</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="left-panel">
+            <div class="panel-header">
+                <h3>📊 原始上传表格</h3>
+            </div>
+            <div class="table-container">
+                <div class="table-wrapper">
+                    <table class="data-table" id="originalTable">
+                        <tbody>
+                            <tr><td colspan="100%" class="loading">正在加载原始数据...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="panel-header">
+                <h3>🎯 大模型填充结果</h3>
+            </div>
+            <div class="table-container">
+                <div class="table-wrapper">
+                    <table class="data-table" id="resultTable">
+                        <tbody>
+                            <tr><td colspan="3" class="loading">等待大模型处理完成...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="actions">
+        <div class="token-info" id="tokenInfo" style="display: none;">
+            <!-- Token信息将在这里显示 -->
+        </div>
+        
+        <a href="#" class="action-button" id="downloadExcel" style="display: none;">
+            📊 下载大模型填充结果（Excel格式）
+        </a>
+        <a href="#" class="action-button" id="downloadCSV" style="display: none;">
+            📄 下载大模型填充结果（CSV格式）
+        </a>
+        <a href="/excel" class="action-button secondary" style="display: none;">
+            🔙 返回质量工单检测系统
+        </a>
+    </div>
+
+    <script>
+        // 从URL参数获取文件名
+        const urlParams = new URLSearchParams(window.location.search);
+        const filename = urlParams.get('filename');
+        const originalFilename = urlParams.get('original_filename');
+
+        // 记录开始时间（从进入结果页面开始计时）
+        const startTime = Date.now();
+
+        if (!filename) {
+            document.getElementById('resultInfo').innerHTML = '<p style="color: red;">❌ 缺少文件参数</p>';
+        } else {
+            // 开始处理
+            startProcessing();
+        }
+
+        function startProcessing() {
+            // 先加载原始表格
+            loadOriginalTable();
+
+            // 开始AI处理
+            processInference();
+        }
+
+        function loadOriginalTable() {
+            fetch(`/excel/get-original-data/${filename}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayTable('originalTable', data.data, data.columns);
+                } else {
+                    document.getElementById('originalTable').innerHTML = 
+                        `<tbody><tr><td colspan="100%" style="color: red;">❌ ${data.error}</td></tr></tbody>`;
+                }
+            })
+            .catch(error => {
+                console.error('加载原始表格失败:', error);
+                document.getElementById('originalTable').innerHTML = 
+                    `<tbody><tr><td colspan="100%" style="color: red;">❌ 加载失败: ${error.message}</td></tr></tbody>`;
+            });
+        }
+
+        function processInference() {
+            const startTime = Date.now();
+
+            fetch('/excel/process', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    filename: filename,
+                    original_filename: originalFilename
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 计算处理时间
+                    const endTime = Date.now();
+                    const processingTime = ((endTime - startTime) / 1000).toFixed(1);
+
+                    // 显示耗时信息
+                    document.getElementById('timeDisplay').textContent = `${processingTime}秒`;
+                    document.getElementById('processingTime').style.display = 'block';
+
+                    showProcessingComplete(data);
+                    loadResultTable(data.csv_filename);
+                } else {
+                    showError(data.error || '处理失败');
+                }
+            })
+            .catch(error => {
+                showError('处理失败: ' + error.message);
+                console.error('处理错误详情:', error);
+            });
+        }
+
+        function showProcessingComplete(data) {
+            // 更新处理状态显示（这是关键！）
+            const resultInfo = document.getElementById('resultInfo');
+            resultInfo.innerHTML = `
+                <h4>✅ 处理完成</h4>
+                <p><strong>处理数据行数:</strong> ${data.rows_processed || '未知'} 行</p>
+                <p><strong>完成时间:</strong> ${new Date().toLocaleString()}</p>
+            `;
+
+            // 显示下载按钮
+            document.getElementById('downloadExcel').href = `/excel/download/${data.excel_filename}`;
+            document.getElementById('downloadCSV').href = `/excel/download/${data.csv_filename}`;
+            document.getElementById('downloadExcel').style.display = 'inline-block';
+            document.getElementById('downloadCSV').style.display = 'inline-block';
+        }
+
+        function loadResultTable(csvFilename) {
+            fetch(`/excel/get-result-data/${csvFilename}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayTable('resultTable', data.data, data.columns);
+                } else {
+                    document.getElementById('resultTable').innerHTML = 
+                        `<tbody><tr><td colspan="3" style="color: red;">❌ ${data.error}</td></tr></tbody>`;
+                }
+            })
+            .catch(error => {
+                console.error('加载结果表格失败:', error);
+                document.getElementById('resultTable').innerHTML = 
+                    `<tbody><tr><td colspan="3" style="color: red;">❌ 加载失败: ${error.message}</td></tr></tbody>`;
+            });
+        }
+
+        function displayTable(tableId, data, columns) {
+            const table = document.getElementById(tableId);
+            
+            // 创建表头
+            let headerHtml = '<thead><tr>';
+            columns.forEach(col => {
+                headerHtml += `<th title="${col}">${col}</th>`;
+            });
+            headerHtml += '</tr></thead>';
+            
+            // 创建表体
+            let bodyHtml = '<tbody>';
+            data.forEach(row => {
+                bodyHtml += '<tr>';
+                columns.forEach(col => {
+                    const cellValue = row[col] || '';
+                    bodyHtml += `<td title="${cellValue}">${cellValue}</td>`;
+                });
+                bodyHtml += '</tr>';
+            });
+            bodyHtml += '</tbody>';
+            
+            table.innerHTML = headerHtml + bodyHtml;
+        }
+
+        function showError(message) {
+            const resultInfo = document.getElementById('resultInfo');
+            resultInfo.innerHTML = `<p style="color: red;">❌ ${message}</p>`;
+        }
+    </script>
+</body>
+</html>

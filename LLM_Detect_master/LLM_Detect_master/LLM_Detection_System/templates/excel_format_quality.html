@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>质量工单判断标准格式</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Microsoft YaHei', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      animation: fadeInUp 0.8s ease-out;
+    }
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .header {
+      background: linear-gradient(135deg, #175cc6 0%, #1f588a 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 32px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    .header p {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+    .content {
+      padding: 25px 40px 40px 40px;
+    }
+    .download-section {
+      text-align: center;
+      margin: 0 0 15px 0;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #e8f4fd 0%, #d1ecf1 100%);
+      border: 2px solid #175cc6;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(23, 92, 198, 0.15);
+    }
+    .download-btn {
+      background: linear-gradient(135deg, #175cc6 0%, #1f588a 100%);
+      color: white;
+      border: none;
+      border-radius: 25px;
+      padding: 15px 30px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(23, 92, 198, 0.4);
+    }
+    .example-section {
+      background: #f8f9fa;
+      border-radius: 15px;
+      padding: 30px;
+      margin-bottom: 30px;
+      overflow-x: auto;
+    }
+    .example-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .example-table {
+      width: 100%;
+      min-width: 1200px;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      font-size: 13px;
+      table-layout: fixed;
+    }
+    .example-table th:nth-child(1),
+    .example-table td:nth-child(1) { width: 10%; min-width: 120px; }
+    .example-table th:nth-child(2),
+    .example-table td:nth-child(2) { width: 12%; min-width: 140px; }
+    .example-table th:nth-child(3),
+    .example-table td:nth-child(3) { width: 18%; min-width: 200px; }
+    .example-table th:nth-child(4),
+    .example-table td:nth-child(4) { width: 10%; min-width: 120px; }
+    .example-table th:nth-child(5),
+    .example-table td:nth-child(5) { width: 10%; min-width: 120px; }
+    .example-table th:nth-child(6),
+    .example-table td:nth-child(6) { width: 15%; min-width: 180px; }
+    .example-table th:nth-child(7),
+    .example-table td:nth-child(7) { width: 10%; min-width: 120px; }
+    .example-table th:nth-child(8),
+    .example-table td:nth-child(8) { width: 15%; min-width: 180px; }
+    .example-table th:nth-child(9),
+    .example-table td:nth-child(9) { width: 15%; min-width: 180px; } /* 新增列宽 */
+    .example-table th {
+      background: #175cc6;
+      color: white;
+      padding: 12px 8px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .example-table td {
+      padding: 12px 8px;
+      border-bottom: 1px solid #e9ecef;
+      text-align: center;
+      font-size: 12px;
+      word-wrap: break-word;
+    }
+    .example-table tr:nth-child(even) {
+      background: #f8f9fa;
+    }
+    .format-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 30px;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      table-layout: fixed;
+    }
+    .format-table th:nth-child(1),
+    .format-table td:nth-child(1) { width: 25%; }
+    .format-table th:nth-child(2),
+    .format-table td:nth-child(2) { width: 35%; }
+    .format-table th:nth-child(3),
+    .format-table td:nth-child(3) { width: 15%; }
+    .format-table th:nth-child(4),
+    .format-table td:nth-child(4) { width: 25%; }
+    .format-table th {
+      background: linear-gradient(135deg, #175cc6 0%, #1f588a 100%);
+      color: white;
+      padding: 15px 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+    .format-table td {
+      padding: 12px;
+      border-bottom: 1px solid #e9ecef;
+      vertical-align: top;
+    }
+    .format-table tr:nth-child(even) {
+      background: #f8f9fa;
+    }
+    .format-table tr:hover {
+      background: #f3e5f5;
+    }
+    .column-name {
+      font-weight: 600;
+      color: #175cc6;
+    }
+    .column-type {
+      color: #28a745;
+      font-size: 12px;
+      background: #d4edda;
+      padding: 2px 8px;
+      border-radius: 12px;
+      display: inline-block;
+      margin-top: 5px;
+    }
+    .required {
+      color: #dc3545;
+      font-size: 12px;
+      background: #f8d7da;
+      padding: 2px 8px;
+      border-radius: 12px;
+      display: inline-block;
+      margin-top: 5px;
+    }
+    .optional {
+      color: #6c757d;
+      font-size: 12px;
+      background: #e2e3e5;
+      padding: 2px 8px;
+      border-radius: 12px;
+      display: inline-block;
+      margin-top: 5px;
+    }
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 1000;
+    }
+    .back-btn:hover {
+      background: rgba(0, 0, 0, 0.9);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    @media (max-width: 768px) {
+      .container {
+        margin: 10px;
+        border-radius: 15px;
+      }
+      .header {
+        padding: 20px;
+      }
+      .header h1 {
+        font-size: 24px;
+      }
+      .content {
+        padding: 20px;
+      }
+      .format-table, .example-table {
+        font-size: 12px;
+      }
+      .format-table th, .format-table td,
+      .example-table th, .example-table td {
+        padding: 8px 6px;
+      }
+      .back-btn {
+        position: static;
+        margin-bottom: 20px;
+        align-self: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a href="/excel/format-standard" class="back-btn"><span>←</span><span>返回标准格式</span></a>
+
+  <div class="container">
+    <div class="header">
+      <h1>工单类型判断标准文件格式</h1>
+      <p>工单类型智能判断功能的标准Excel文件格式说明</p>
+    </div>
+
+    <div class="content">
+      <!-- 下载模板 -->
+      <div class="download-section">
+        <h3 style="margin-bottom: 5px; color: #175cc6; font-size: 16px; font-weight: 700;">📥 下载标准模板</h3>
+        <a href="/excel/download-template/quality" class="download-btn">
+          <span>📄</span><span>下载质量工单判断模板</span>
+        </a>
+        <p style="margin-top: 5px; color: #666; font-size: 12px;">💡 下载Excel模板文件，按照标准格式填写数据后上传进行质量工单判断</p>
+      </div>
+
+      <!-- 示例数据（已加判断依据） -->
+      <div class="example-section">
+        <div class="example-title"><span>📊</span><span>示例数据</span></div>
+        <table class="example-table">
+          <thead>
+            <tr>
+              <th>维修工单号</th>
+              <th>问题描述</th>
+              <th>故障件</th>
+              <th>解决方案</th>
+              <th>原因分析</th>
+              <th>问题分类</th>
+              <th>产品型号</th>
+              <th>是否质量工单</th>
+              <th>判断依据</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>WO0016977126</td>
+              <td>漏水</td>
+              <td>密封圈</td>
+              <td>更换进水口密封圈</td>
+              <td>服务技能不足</td>
+              <td>安装服务问题</td>
+              <td>J3675-ROC180</td>
+              <td></td>
+              <td>密封圈老化导致漏水</td>
+            </tr>
+            <tr>
+              <td>WO0016976300</td>
+              <td>闪绿灯不出水</td>
+              <td>线束</td>
+              <td>开鉴定单换机</td>
+              <td>指示灯板线束端子松脱</td>
+              <td>制程问题</td>
+              <td>J3675-ROC150</td>
+              <td></td>
+              <td>线束端子松脱，制造缺陷</td>
+            </tr>
+            <tr>
+              <td>WO0016978938</td>
+              <td>不出水</td>
+              <td>漏保开关</td>
+              <td>复位漏保开关</td>
+              <td>漏保误报</td>
+              <td>安装服务问题</td>
+              <td>J3675-ROC150</td>
+              <td></td>
+              <td>漏保开关误动作，非质量问题</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 格式说明（已加判断依据） -->
+      <table class="format-table">
+        <thead>
+          <tr>
+            <th>列名</th>
+            <th>说明</th>
+            <th>类型</th>
+            <th>示例</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="column-name">维修工单号</div>
+              <div class="required">必填</div>
+            </td>
+            <td>维修工单的唯一编号</td>
+            <td><div class="column-type">文本</div></td>
+            <td>WO0016977126</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="column-name">问题描述</div>
+              <div class="required">必填</div>
+            </td>
+            <td>客户反映的问题描述</td>
+            <td><div class="column-type">文本</div></td>
+            <td>漏水</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="column-name">故障件</div>
+              <div class="required">必填</div>
+            </td>
+            <td>发生故障的具体零件名称</td>
+            <td><div class="column-type">文本</div></td>
+            <td>密封圈</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="column-name">解决方案</div>
+              <div class="required">必填</div>
+            </td>
+            <td>维修处理的具体方案</td>
+            <td><div class="column-type">文本</div></td>
+            <td>更换进水口密封圈</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="column-name">原因分析</div>
+              <div class="required">必填</div>
+            </td>
+            <td>故障产生的原因分析</td>
+            <td><div class="column-type">文本</div></td>
+            <td>服务技能不足</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="column-name">问题分类</div>
+              <div class="required">必填</div>
+            </td>
+            <td>问题的分类类别</td>
+            <td><div class="column-type">文本</div></td>
+            <td>安装服务问题</td>
+          </tr>
+          <tr>
+            <td>
+              <div class="column-name">产品型号</div>
+              <div class="required">必填</div>
+            </td>
+            <td>相关产品的型号</td>
+            <td><div class="column-type">文本</div></td>
+            <td>J3675-ROC180</td>
+          </tr>
+          <tr style="background: #175cc6;">
+            <td>
+              <div class="column-name" style="color: #ffffff;">是否质量工单</div>
+              <div class="optional" style="background: rgba(255,255,255,0.3); color: #ffffff;">AI填充</div>
+            </td>
+            <td style="color: #ffffff; font-weight: 600;">AI自动检测填充的质量工单判断结果，无需手动填写</td>
+            <td><div class="column-type" style="background: rgba(255,255,255,0.3); color: #ffffff;">AI生成</div></td>
+            <td style="color: #ffffff; font-weight: 700; font-style: italic;">留空 - AI自动填充</td>
+          </tr>
+          <tr style="background: #175cc6;">
+            <td>
+              <div class="column-name" style="color: #ffffff;">判断依据</div>
+              <div class="optional" style="background: rgba(255,255,255,0.3); color: #ffffff;">AI填充</div>
+            </td>
+            <td style="color: #ffffff; font-weight: 600;">AI自动生成的质量工单判断理由，无需手动填写</td>
+            <td><div class="column-type" style="background: rgba(255,255,255,0.3); color: #ffffff;">AI生成</div></td>
+            <td style="color: #ffffff; font-weight: 700; font-style: italic;">留空 - AI自动填充</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // 页面加载动画
+    document.addEventListener('DOMContentLoaded', function () {
+      const container = document.querySelector('.container');
+      container.style.opacity = '0';
+      container.style.transform = 'translateY(30px)';
+      setTimeout(() => {
+        container.style.transition = 'all 0.8s ease-out';
+        container.style.opacity = '1';
+        container.style.transform = 'translateY(0)';
+      }, 100);
+    });
+  </script>
+</body>
+</html>

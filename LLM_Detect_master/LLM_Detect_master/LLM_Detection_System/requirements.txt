@@ -1,0 +1,39 @@
+# Flask核心框架
+flask>=2.3.0
+flask-cors>=4.0.0
+flask-login>=0.6.0
+flask-sqlalchemy>=3.0.0
+werkzeug>=2.3.0
+
+# 数据处理
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+# AI模型接口
+openai>=1.0.0
+
+# 环境配置
+python-dotenv>=1.0.0
+
+# PDF处理
+pdf2image>=1.16.0
+
+# 图像处理
+pillow>=9.0.0
+
+# 验证码生成
+captcha>=0.5.0
+
+# 数据库驱动
+pymysql>=1.0.0
+
+# HTTP请求（用于测试）
+requests>=2.31.0
+
+# OAuth 2.0 和 JWT
+authlib>=1.2.0
+pyjwt>=2.8.0
+cryptography>=41.0.0
+
+# API频率限制
+flask-limiter>=3.5.0

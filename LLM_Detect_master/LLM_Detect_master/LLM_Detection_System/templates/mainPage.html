@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智能检测系统 - 主页</title>
+  <style>
+    /* ---------- 基础重置 ---------- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Microsoft YaHei', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    /* ---------- 顶部公共头 ---------- */
+    .header {
+      background: rgba(0, 0, 0, .15);
+      backdrop-filter: blur(10px);
+      padding: 12px 0;
+      position: sticky;
+      top: 0;
+      z-index: 999;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    .logo {
+      font-size: 1.6em;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-logout {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-logout:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
+    }
+
+    /* ---------- 面包屑 ---------- */
+    .breadcrumb {
+      background: rgba(0, 0, 0, .1);
+      backdrop-filter: blur(5px);
+      padding: 8px 0;
+      font-size: .9em;
+    }
+
+    .breadcrumb-content {
+      max-width: 1200px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 20px;
+    }
+
+    .breadcrumb-item {
+      color: rgba(255, 255, 255, .75);
+      text-decoration: none;
+      transition: .3s;
+    }
+
+    .breadcrumb-item:hover {
+      color: #fff;
+    }
+
+    .breadcrumb-item.active {
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* ---------- 主容器 ---------- */
+    .main-container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 0 20px;
+    }
+
+    /* 主页卡片区 */
+    .cards-section {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, .08);
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .1);
+      backdrop-filter: blur(12px);
+      cursor: pointer;
+      transition: .3s;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .2);
+      background: rgba(255, 255, 255, .12);
+    }
+
+    .card-icon {
+      font-size: 3em;
+      margin-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 1.3em;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .card-desc {
+      font-size: .9em;
+      opacity: .8;
+    }
+
+    /* ---------- 统计 + 记录区域 ---------- */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .stats-section,
+    .recent-records {
+      background: rgba(255, 255, 255, .08);
+      border: 1px solid rgba(255, 255, 255, .15);
+      border-radius: 12px;
+      padding: 25px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .1);
+      backdrop-filter: blur(12px);
+    }
+
+    .stats-title,
+    .records-title {
+      font-size: 1.4em;
+      margin-bottom: 15px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, .2);
+      padding-bottom: 8px;
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, .1);
+    }
+
+    .stat-value {
+      font-weight: 700;
+      font-size: 1.2em;
+      transition: all 0.3s;
+    }
+
+    .stat-value.updated {
+      color: #ffa726;
+      transform: scale(1.1);
+    }
+
+    .record-item {
+      background: rgba(255, 255, 255, .05);
+      border-left: 3px solid #ffa726;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
+      font-size: .9em;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .record-time {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.85em;
+      margin-bottom: 4px;
+    }
+
+    .record-type {
+      font-weight: 600;
+    }
+
+    /* ---------- 快速导航 ---------- */
+    .quick-nav {
+      position: fixed;
+      right: 20px;
+      bottom: 80px;
+      background: rgba(0, 0, 0, .25);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      transition: transform 0.3s;
+    }
+
+    .quick-nav-item {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .15);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2em;
+      transition: .3s;
+      text-decoration: none;
+    }
+
+    .quick-nav-item:hover {
+      background: rgba(255, 255, 255, .25);
+      transform: scale(1.1);
+    }
+
+    /* ---------- 底部帮助 ---------- */
+    .footer {
+      margin-top: 40px;
+      background: rgba(0, 0, 0, .25);
+      backdrop-filter: blur(10px);
+      padding: 25px 0;
+      text-align: center;
+      font-size: .9em;
+    }
+
+    .copyright {
+      opacity: 0.8;
+    }
+
+    /* ---------- 加载状态 ---------- */
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ---------- 响应式 ---------- */
+    @media (max-width: 768px) {
+      .cards-section {
+        grid-template-columns: 1fr;
+      }
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+      .quick-nav {
+        right: 10px;
+        bottom: 10px;
+        flex-direction: row;
+        padding: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+<!-- 顶部导航 -->
+<header class="header">
+  <div class="header-content">
+    <div class="logo">
+      <span>🤖 智能检测系统</span>
+    </div>
+    <div class="user-info">
+      <div class="user-avatar">👤</div>
+      <span id="username">加载中...</span>
+      <button onclick="logout()" class="btn-logout">退出</button>
+    </div>
+  </div>
+</header>
+
+<!-- 面包屑导航 -->
+<nav class="breadcrumb">
+  <div class="breadcrumb-content">
+    <a href="/" class="breadcrumb-item">首页</a>
+    <span class="breadcrumb-separator">›</span>
+    <span class="breadcrumb-item active" id="currentPage">系统主页</span>
+  </div>
+</nav>
+
+<!-- 主要内容 -->
+<main class="main-container">
+  <div class="cards-section">
+    <div class="card" onclick="enterSystem('drawing')">
+      <div class="card-icon">📐</div>
+      <div class="card-title">图纸AI检测</div>
+      <div class="card-desc">自动识别工程图纸中的错误和缺陷</div>
+    </div>
+
+    <div class="card" onclick="enterSystem('excel')">
+      <div class="card-icon">🔍</div>
+      <div class="card-title">质量工单判定</div>
+      <div class="card-desc">智能分析质量工单并给出判定建议</div>
+    </div>
+
+    <div class="card" onclick="enterSystem('drawing-history')">
+      <div class="card-icon">📊</div>
+      <div class="card-title">制图历史记录</div>
+      <div class="card-desc">查看制图检测历史记录</div>
+    </div>
+
+    <div class="card" onclick="enterSystem('excel-history')">
+      <div class="card-icon">📋</div>
+      <div class="card-title">工单历史记录</div>
+      <div class="card-desc">查看工单检测历史记录</div>
+    </div>
+  </div>
+
+  <div class="content-grid">
+    <div class="stats-section">
+      <div class="stats-title">📈 使用统计</div>
+      <div class="stat-item">
+        <span class="stat-label">本月检测次数</span>
+        <span class="stat-value" id="monthlyCount"><span class="loading-spinner"></span></span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">历史总检测次数</span>
+        <span class="stat-value" id="totalCount"><span class="loading-spinner"></span></span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">图纸符合率</span>
+        <span class="stat-value" id="drawingRate"><span class="loading-spinner"></span></span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">工单问题比例</span>
+        <span class="stat-value" id="issueRate"><span class="loading-spinner"></span></span>
+      </div>
+    </div>
+
+    <div class="recent-records">
+      <div class="records-title">🕒 最近检测记录</div>
+      <div id="recordsList">
+        <div style="text-align: center; padding: 20px;">
+          <span class="loading-spinner"></span>
+          <p style="margin-top: 10px; opacity: 0.7;">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- 快速跳转菜单 -->
+<div class="quick-nav">
+  <a href="/drawing" class="quick-nav-item" title="工程制图检测">📐</a>
+  <a href="/excel" class="quick-nav-item" title="质量工单判定">🔍</a>
+  <a href="/drawing/history" class="quick-nav-item" title="制图历史">📊</a>
+  <a href="/excel/history" class="quick-nav-item" title="工单历史">📋</a>
+  <a href="#" class="quick-nav-item" onclick="scrollToTop(); return false;" title="返回顶部">⬆️</a>
+</div>
+
+<!-- 底部帮助区域 -->
+<footer class="footer">
+  <div class="footer-content">
+    <div class="copyright">
+      <p>&copy; 2024 智能检测系统. All rights reserved. | 版本 v2.0.1</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ==================== API调用函数 ====================
+  
+  /**
+   * 获取用户信息
+   */
+  async function fetchUserInfo() {
+    try {
+      const response = await fetch('/api/dashboard/user-info');
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        document.getElementById('username').textContent = result.data.username || '访客';
+      }
+    } catch (error) {
+      console.error('获取用户信息失败:', error);
+      document.getElementById('username').textContent = '访客';
+    }
+  }
+
+  /**
+   * 获取统计数据
+   */
+  async function fetchStatistics() {
+    try {
+      const response = await fetch('/api/dashboard/statistics');
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        const data = result.data;
+        
+        // 更新统计数据
+        updateStatValue('monthlyCount', data.monthlyCount.toLocaleString());
+        updateStatValue('totalCount', data.totalCount.toLocaleString());
+        updateStatValue('drawingRate', data.drawingRate.toFixed(1) + '%');
+        updateStatValue('issueRate', data.issueRate.toFixed(1) + '%');
+      } else {
+        // 显示默认值
+        updateStatValue('monthlyCount', '0');
+        updateStatValue('totalCount', '0');
+        updateStatValue('drawingRate', '0.0%');
+        updateStatValue('issueRate', '0.0%');
+      }
+    } catch (error) {
+      console.error('获取统计数据失败:', error);
+      // 显示错误提示
+      updateStatValue('monthlyCount', '加载失败');
+      updateStatValue('totalCount', '加载失败');
+      updateStatValue('drawingRate', '加载失败');
+      updateStatValue('issueRate', '加载失败');
+    }
+  }
+
+  /**
+   * 获取最近记录
+   */
+  async function fetchRecentRecords() {
+    try {
+      const response = await fetch('/api/dashboard/recent-records');
+      const result = await response.json();
+      
+      const recordsList = document.getElementById('recordsList');
+      
+      if (result.success && result.data && result.data.length > 0) {
+        recordsList.innerHTML = '';
+        
+        result.data.forEach(record => {
+          const recordItem = document.createElement('div');
+          recordItem.className = 'record-item';
+          recordItem.innerHTML = `
+            <div class="record-time">${record.time || '未知时间'}</div>
+            <div class="record-type">${record.type || '未知类型'} - ${record.detail || '无详情'}</div>
+          `;
+          recordsList.appendChild(recordItem);
+        });
+      } else {
+        recordsList.innerHTML = '<div style="text-align: center; padding: 20px; opacity: 0.7;">暂无检测记录</div>';
+      }
+    } catch (error) {
+      console.error('获取最近记录失败:', error);
+      document.getElementById('recordsList').innerHTML = 
+        '<div style="text-align: center; padding: 20px; opacity: 0.7;">加载失败</div>';
+    }
+  }
+
+  /**
+   * 更新单个统计值（带动画效果）
+   */
+  function updateStatValue(elementId, newValue) {
+    const element = document.getElementById(elementId);
+    const oldValue = element.textContent;
+
+    if (oldValue !== newValue) {
+      element.classList.add('updated');
+      element.textContent = newValue;
+
+      setTimeout(() => {
+        element.classList.remove('updated');
+      }, 1000);
+    }
+  }
+
+  // ==================== 页面交互函数 ====================
+
+  /**
+   * 进入子系统
+   */
+  function enterSystem(systemType) {
+    const routes = {
+      'drawing': '/drawing',
+      'excel': '/excel',
+      'drawing-history': '/drawing/history',
+      'excel-history': '/excel/history'
+    };
+
+    const route = routes[systemType];
+    if (route) {
+      window.location.href = route;
+    }
+  }
+
+  /**
+   * 返回顶部
+   */
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /**
+   * 退出登录
+   */
+  function logout() {
+    if (confirm('确定要退出系统吗？')) {
+      window.location.href = '/auth/logout';
+    }
+  }
+
+  /**
+   * 添加滚动效果
+   */
+  function addScrollEffects() {
+    let lastScrollTop = 0;
+
+    window.addEventListener('scroll', function() {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const header = document.querySelector('.header');
+      const quickNav = document.querySelector('.quick-nav');
+
+      if (scrollTop > lastScrollTop && scrollTop > 100) {
+        header.style.transform = 'translateY(-100%)';
+        quickNav.style.transform = 'translateX(100%)';
+      } else {
+        header.style.transform = 'translateY(0)';
+        quickNav.style.transform = 'translateX(0)';
+      }
+
+      lastScrollTop = scrollTop;
+    });
+  }
+
+  /**
+   * 初始化页面
+   */
+  async function initializePage() {
+    // 加载用户信息
+    await fetchUserInfo();
+    
+    // 加载统计数据
+    await fetchStatistics();
+    
+    // 加载最近记录
+    await fetchRecentRecords();
+    
+    // 添加滚动效果
+    addScrollEffects();
+    
+    // 定时刷新数据（每30秒）
+    setInterval(async () => {
+      await fetchStatistics();
+      await fetchRecentRecords();
+    }, 30000);
+  }
+
+  // ==================== 页面加载 ====================
+
+  // 页面加载完成后初始化
+  document.addEventListener('DOMContentLoaded', function() {
+    initializePage();
+  });
+
+  // 页面可见性变化时刷新数据
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+      console.log('页面显示，刷新数据');
+      fetchStatistics();
+      fetchRecentRecords();
+    }
+  });
+
+  // 添加键盘快捷键
+  document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey) {
+      switch(e.key) {
+        case '1':
+          e.preventDefault();
+          enterSystem('drawing');
+          break;
+        case '2':
+          e.preventDefault();
+          enterSystem('excel');
+          break;
+        case '3':
+          e.preventDefault();
+          enterSystem('drawing-history');
+          break;
+        case '4':
+          e.preventDefault();
+          enterSystem('excel-history');
+          break;
+        case 'h':
+          e.preventDefault();
+          window.location.href = '/';
+          break;
+      }
+    }
+  });
+</script>
+</body>
+</html>

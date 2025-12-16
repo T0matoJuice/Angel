@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>质量工单判定</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+        }
+
+        .back-btn:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+            color: white;
+            padding: 50px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 60px;
+        }
+
+        .template-reminder {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 1px solid #ffeaa7;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+        }
+
+        .reminder-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .reminder-icon {
+            font-size: 24px;
+            color: #856404;
+        }
+
+        .reminder-text {
+            color: #856404;
+            font-size: 14px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .template-link {
+            background: #856404;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .template-link:hover {
+            background: #6c4f03;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(133, 100, 4, 0.3);
+        }
+
+        .upload-section {
+            border: 3px dashed #20c997;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: #f0fffe;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+
+        .upload-section:hover {
+            border-color: #17a2b8;
+            background: #e8fffe;
+            transform: translateY(-2px);
+        }
+
+        .upload-section.dragover {
+            border-color: #17a2b8;
+            background: #e0fffd;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #20c997;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .upload-hint {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(32, 201, 151, 0.4);
+        }
+
+        .file-info {
+            display: none;
+            background: #e8f5e8;
+            border: 1px solid #28a745;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .file-details {
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .process-button {
+            display: none;
+            background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .process-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(32, 201, 151, 0.4);
+        }
+
+        .progress-section {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .data-limit-warning {
+            text-align: center;
+            margin: 15px 0 25px 0;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            color: #856404;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
+        }
+
+        .warning-icon {
+            font-size: 16px;
+            margin-right: 8px;
+        }
+
+        .warning-text {
+            font-weight: 500;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .result-section {
+            display: none;
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .result-info h4 {
+            color: #0c5460;
+            margin-bottom: 10px;
+        }
+
+        .result-info p {
+            color: #0c5460;
+            line-height: 1.6;
+        }
+
+        .error-message, .success-message {
+            display: none;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        /* 确认弹窗样式 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9998;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .confirm-modal {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 520px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: slideDown 0.4s ease-out;
+            overflow: hidden;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px) scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+            color: white;
+            padding: 24px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .modal-file-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .modal-file-info-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+
+        .modal-file-info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-file-info-label {
+            font-weight: 600;
+            color: #495057;
+            min-width: 90px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-file-info-value {
+            color: #212529;
+            flex: 1;
+            word-break: break-all;
+        }
+
+        .modal-file-icon {
+            font-size: 16px;
+        }
+
+        .modal-warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .modal-warning-icon {
+            font-size: 18px;
+            color: #856404;
+            margin-top: 2px;
+        }
+
+        .modal-warning-text {
+            color: #856404;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            border: none;
+            border-radius: 8px;
+            padding: 12px 28px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-cancel {
+            background: #f8f9fa;
+            color: #495057;
+            border: 1px solid #dee2e6;
+        }
+
+        .modal-btn-cancel:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+        }
+
+        .modal-btn-confirm {
+            background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+            color: white;
+        }
+
+        .modal-btn-confirm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(32, 201, 151, 0.4);
+        }
+
+        .modal-btn-confirm:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .upload-section {
+                padding: 30px 20px;
+            }
+
+            .upload-icon {
+                font-size: 36px;
+            }
+
+            .upload-text {
+                font-size: 16px;
+            }
+
+            .back-btn {
+                position: static;
+                margin-bottom: 20px;
+                align-self: flex-start;
+            }
+
+            .confirm-modal {
+                width: 95%;
+                max-width: none;
+            }
+
+            .modal-header {
+                padding: 20px;
+            }
+
+            .modal-header h3 {
+                font-size: 18px;
+            }
+
+            .modal-body {
+                padding: 20px;
+            }
+
+            .modal-footer {
+                padding: 15px 20px;
+                flex-direction: column;
+            }
+
+            .modal-btn {
+                width: 100%;
+            }
+
+            .modal-file-info-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+
+            .modal-file-info-label {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="/excel" class="back-btn">
+        <span>←</span>
+        <span>返回质量工单检测系统</span>
+    </a>
+
+    <div class="container">
+        <div class="header">
+            <h1>🔍 质量工单判定</h1>
+            <p>智能识别工单是否为质量工单</p>
+        </div>
+
+        <div class="content">
+            <!-- 模板提醒 -->
+            <div class="template-reminder">
+                <div class="reminder-content">
+                    <span class="reminder-icon">📋</span>
+                    <span class="reminder-text">
+                        <strong>文件格式要求：</strong>上传文件前请确保您的Excel文件包含标准的列名内容与格式，否则检测结果可能不准确
+                    </span>
+                    <a href="/excel/format-standard/quality?source=quality" class="template-link">查看标准格式模板</a>
+                </div>
+            </div>
+
+            <!-- 文件上传区域 -->
+            <div class="upload-section" id="uploadSection" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📊</div>
+                <div class="upload-text">上传测试工单文件</div>
+                <div class="upload-hint">支持 .xlsx 和 .xls 格式，点击或拖拽文件到此区域</div>
+                <button class="upload-btn" type="button">选择文件</button>
+                <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls">
+            </div>
+
+            <!-- 数据量限制提醒 -->
+            <div class="data-limit-warning">
+                <span class="warning-icon">⚠️</span>
+                <span class="warning-text">建议上传的数据量保持在100条以内，以确保大模型处理效率和稳定性</span>
+            </div>
+
+            <!-- 文件信息显示 -->
+            <div class="file-info" id="fileInfo">
+                <h4>📄 文件信息</h4>
+                <div class="file-details" id="fileDetails"></div>
+                <button class="process-button" id="processButton">🚀 开始质量工单判断</button>
+            </div>
+
+            <!-- 进度显示 -->
+            <div class="progress-section" id="progressSection">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">准备中...</div>
+            </div>
+
+            <!-- 提示信息 -->
+            <div class="result-section" id="resultSection" style="display: none;">
+                <div class="result-info">
+                    <h4>💡 提示</h4>
+                    <p>点击"开始质量工单判断"后将跳转到结果页面，在那里可以看到原始表格和检测结果的对比。</p>
+                </div>
+            </div>
+
+            <!-- 消息提示 -->
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+        </div>
+    </div>
+
+    <!-- 确认上传弹窗 -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="confirm-modal">
+            <div class="modal-header">
+                <h3>📋 确认上传文件</h3>
+                <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-file-info">
+                    <div class="modal-file-info-item">
+                        <span class="modal-file-info-label">
+                            <span class="modal-file-icon">📄</span>
+                            文件名：
+                        </span>
+                        <span class="modal-file-info-value" id="confirmFileName">-</span>
+                    </div>
+                    <div class="modal-file-info-item">
+                        <span class="modal-file-info-label">
+                            <span class="modal-file-icon">📊</span>
+                            文件大小：
+                        </span>
+                        <span class="modal-file-info-value" id="confirmFileSize">-</span>
+                    </div>
+                    <div class="modal-file-info-item">
+                        <span class="modal-file-info-label">
+                            <span class="modal-file-icon">📝</span>
+                            文件类型：
+                        </span>
+                        <span class="modal-file-info-value" id="confirmFileType">-</span>
+                    </div>
+                </div>
+                <div class="modal-warning">
+                    <span class="modal-warning-icon">⚠️</span>
+                    <div class="modal-warning-text">
+                        <strong>温馨提示：</strong>请确认您的文件格式符合标准模板要求。建议数据量保持在100条以内，以确保处理效率。
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" onclick="closeConfirmModal()">取消</button>
+                <button class="modal-btn modal-btn-confirm" id="confirmUploadBtn" onclick="confirmUpload()">确认上传</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentFile = null;
+        let originalFileName = null;
+        let selectedFile = null; // 保存用户选择的文件对象
+
+        // 文件上传处理
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileDetails = document.getElementById('fileDetails');
+        const processButton = document.getElementById('processButton');
+
+        fileInput.addEventListener('change', function(e) {
+            handleFileSelect();
+        });
+        
+        // 拖拽上传功能
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+        
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+        
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                // 拖拽文件时直接处理
+                const file = files[0];
+                validateAndShowModal(file);
+            }
+        });
+
+        // 处理文件选择 - 显示确认弹窗
+        function handleFileSelect() {
+            console.log('handleFileSelect 被调用');
+            const file = fileInput.files[0];
+            console.log('选择的文件:', file);
+            if (!file) {
+                console.log('没有选择文件');
+                return;
+            }
+            
+            validateAndShowModal(file);
+        }
+
+        // 验证文件并显示确认弹窗
+        function validateAndShowModal(file) {
+            console.log('validateAndShowModal 被调用, 文件名:', file.name);
+            if (!file) return;
+
+            // 验证Excel文件格式
+            const validTypes = ['.xlsx', '.xls'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+            console.log('文件扩展名:', fileExtension);
+            
+            if (!validTypes.includes(fileExtension)) {
+                console.log('文件格式不正确');
+                showError('请选择Excel文件(.xlsx或.xls格式)');
+                fileInput.value = ''; // 清空文件选择
+                return;
+            }
+
+            // 保存选中的文件
+            selectedFile = file;
+            console.log('文件已保存到 selectedFile');
+
+            // 显示确认弹窗
+            console.log('准备显示确认弹窗');
+            showConfirmModal(file);
+        }
+
+        // 显示确认弹窗
+        function showConfirmModal(file) {
+            console.log('showConfirmModal 被调用');
+            
+            // 填充文件信息
+            const fileNameEl = document.getElementById('confirmFileName');
+            const fileSizeEl = document.getElementById('confirmFileSize');
+            const fileTypeEl = document.getElementById('confirmFileType');
+            const modalEl = document.getElementById('confirmModal');
+            
+            console.log('DOM元素:', {
+                fileNameEl: !!fileNameEl,
+                fileSizeEl: !!fileSizeEl,
+                fileTypeEl: !!fileTypeEl,
+                modalEl: !!modalEl
+            });
+            
+            if (fileNameEl) fileNameEl.textContent = file.name;
+            if (fileSizeEl) fileSizeEl.textContent = formatFileSize(file.size);
+            
+            // 根据文件扩展名显示类型
+            const ext = file.name.split('.').pop().toLowerCase();
+            const typeMap = {
+                'xlsx': 'Excel 工作簿 (.xlsx)',
+                'xls': 'Excel 97-2003 工作簿 (.xls)'
+            };
+            if (fileTypeEl) fileTypeEl.textContent = typeMap[ext] || file.type || '未知类型';
+
+            // 显示弹窗
+            console.log('准备显示弹窗，添加 show 类');
+            if (modalEl) {
+                modalEl.classList.add('show');
+                console.log('弹窗类列表:', modalEl.classList.toString());
+                console.log('弹窗样式:', window.getComputedStyle(modalEl).display);
+            } else {
+                console.error('找不到 confirmModal 元素！');
+            }
+        }
+
+        // 关闭确认弹窗
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.remove('show');
+            selectedFile = null;
+            fileInput.value = ''; // 清空文件选择
+        }
+
+        // 确认上传 - 真正调用上传接口
+        function confirmUpload() {
+            if (!selectedFile) {
+                showError('未选择文件');
+                return;
+            }
+
+            const confirmBtn = document.getElementById('confirmUploadBtn');
+            const originalText = confirmBtn.textContent;
+
+            // 禁用按钮，显示上传中
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '上传中...';
+
+            // 调用上传函数
+            uploadFile(selectedFile, () => {
+                // 上传成功后关闭弹窗
+                closeConfirmModal();
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = originalText;
+            }, () => {
+                // 上传失败后恢复按钮
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = originalText;
+            });
+        }
+
+        // 上传文件函数
+        function uploadFile(file, onSuccess, onError) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            showProgress('上传文件中...', 20);
+
+            fetch('/excel/quality-upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentFile = data.filename;
+                    originalFileName = file.name;
+                    const uniqueFilename = data.unique_filename;
+                    
+                    console.log('上传成功，准备跳转到结果页面');
+                    console.log('unique_filename:', uniqueFilename);
+                    console.log('original_filename:', originalFileName);
+                    
+                    hideProgress();
+                    showSuccess('文件上传成功，正在跳转...');
+                    
+                    // 调用成功回调
+                    if (onSuccess) onSuccess();
+                    
+                    // 立即跳转到结果页面
+                    setTimeout(() => {
+                        const params = new URLSearchParams({
+                            filename: currentFile,
+                            original_filename: originalFileName,
+                            unique_filename: uniqueFilename
+                        });
+                        window.location.href = `/excel/quality-check/result?${params.toString()}`;
+                    }, 500); // 0.5秒后跳转，让用户看到成功提示
+                    
+                } else {
+                    showError(data.error || '上传失败');
+                    hideProgress();
+                    
+                    // 调用失败回调
+                    if (onError) onError();
+                }
+            })
+            .catch(error => {
+                showError('上传失败: ' + error.message);
+                hideProgress();
+                
+                // 调用失败回调
+                if (onError) onError();
+            });
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 点击弹窗外部关闭
+        document.getElementById('confirmModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeConfirmModal();
+            }
+        });
+
+        // 处理按钮点击
+        processButton.addEventListener('click', () => {
+            if (!currentFile) {
+                showError('请先上传Excel文件');
+                return;
+            }
+
+            processQualityCheck();
+        });
+
+        function processQualityCheck() {
+            if (!currentFile) {
+                showError('请先上传Excel文件');
+                return;
+            }
+
+            // 跳转到结果页面，传递原始文件名
+            const params = new URLSearchParams({
+                filename: currentFile,
+                original_filename: originalFileName || currentFile
+            });
+            window.location.href = `/excel/quality-check/result?${params.toString()}`;
+        }
+
+        function showProgress(text, percent) {
+            const progressSection = document.getElementById('progressSection');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            progressSection.style.display = 'block';
+            progressFill.style.width = percent + '%';
+            progressText.textContent = text;
+        }
+
+        function hideProgress() {
+            document.getElementById('progressSection').style.display = 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

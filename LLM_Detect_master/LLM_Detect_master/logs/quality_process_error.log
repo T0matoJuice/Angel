@@ -1,0 +1,55 @@
+2025-11-28 17:34:51,150 ERROR 质量工单处理失败: cannot access local variable 'os' where it is not associated with a value
+Traceback (most recent call last):
+  File "c:\Users\root\Desktop\LLM_Detect_master\LLM_Detection_System\modules\excel\routes.py", line 477, in excel_quality_process
+    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+               ^^
+UnboundLocalError: cannot access local variable 'os' where it is not associated with a value
+
+2025-11-29 16:45:33,635 ERROR 质量工单处理失败: 分批处理失败: No module named 'modules.models'
+Traceback (most recent call last):
+  File "c:\Users\root\Desktop\LLM_Detect_master\LLM_Detection_System\modules\excel\processor.py", line 877, in batch_process_quality_from_db
+    from modules.models import db, WorkorderData, WorkorderUselessdata1, WorkorderUselessdata2
+ModuleNotFoundError: No module named 'modules.models'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\root\Desktop\LLM_Detect_master\LLM_Detection_System\modules\excel\routes.py", line 580, in excel_quality_process
+    quality_result, usage_stats, processed_count = processor.batch_process_quality_from_db(
+                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        filename=unique_filename,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+        training_excel=training_file,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        batch_size=50
+        ^^^^^^^^^^^^^
+    )
+    ^
+  File "c:\Users\root\Desktop\LLM_Detect_master\LLM_Detection_System\modules\excel\processor.py", line 1028, in batch_process_quality_from_db
+    raise Exception(f"分批处理失败: {str(e)}")
+Exception: 分批处理失败: No module named 'modules.models'
+
+2025-11-29 16:52:49,619 ERROR 质量工单处理失败: 分批处理失败: No module named 'modules.models'
+Traceback (most recent call last):
+  File "c:\Users\root\Desktop\LLM_Detect_master\LLM_Detection_System\modules\excel\processor.py", line 877, in batch_process_quality_from_db
+    from modules.models import db, WorkorderData, WorkorderUselessdata1, WorkorderUselessdata2
+ModuleNotFoundError: No module named 'modules.models'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "c:\Users\root\Desktop\LLM_Detect_master\LLM_Detection_System\modules\excel\routes.py", line 580, in excel_quality_process
+    quality_result, usage_stats, processed_count = processor.batch_process_quality_from_db(
+                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        filename=unique_filename,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^
+        training_excel=training_file,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        batch_size=50
+        ^^^^^^^^^^^^^
+    )
+    ^
+  File "c:\Users\root\Desktop\LLM_Detect_master\LLM_Detection_System\modules\excel\processor.py", line 1028, in batch_process_quality_from_db
+    raise Exception(f"分批处理失败: {str(e)}")
+Exception: 分批处理失败: No module named 'modules.models'
+

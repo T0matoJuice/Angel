@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>质量工单检测系统</title>
+    <style>
+                /* ===== 整体基础 ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+
+        /* 返回按钮 */
+        .back-btn {
+            position: fixed; top: 20px; left: 20px; background: rgba(255,255,255,.9);
+            color: #667eea; border: none; border-radius: 10px; padding: 10px 20px;
+            font-size: 14px; font-weight: 600; cursor: pointer; transition: .3s;
+            text-decoration: none; display: flex; align-items: center; gap: 8px; z-index: 1000;
+        }
+        .back-btn:hover { background: #fff; transform: translateY(-2px); }
+
+        /* 主容器 */
+        .container {
+            background: rgba(255,255,255,.95); border-radius: 25px;
+            box-shadow: 0 25px 50px rgba(0,0,0,.15); padding: 60px 50px;
+            max-width: 1100px; width: 100%; text-align: center; backdrop-filter: blur(10px);
+            animation: fadeInUp .8s ease-out;
+        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 标题区 */
+        .header { margin-bottom: 60px; }
+        .title { font-size: 2.5em; font-weight: 800; margin-bottom: 15px; color: #000; }
+        .subtitle { color: #666; font-size: 1.1em; line-height: 1.6; max-width: 600px; margin: 0 auto; }
+
+        /* 提示条 */
+        .format-reminder {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%); border: 2px solid #ffc107;
+            border-radius: 15px; padding: 20px; margin: 30px auto; max-width: 700px;
+            display: flex; align-items: center; gap: 15px; box-shadow: 0 8px 25px rgba(255,193,7,.2);
+        }
+        .reminder-icon { font-size: 24px; flex-shrink: 0; }
+        .reminder-text { color: #856404; font-size: 16px; line-height: 1.5; }
+        .highlight-text { color: #e83e8c; font-weight: 600; text-decoration: underline; }
+
+        /* ===== 3 行单列容器 ===== */
+        .options-container {
+            display: grid;
+            grid-template-columns: 1fr;   /* 单列 */
+            grid-auto-rows: 1fr;          /* 3 行等高 */
+            gap: 25px;
+            max-width: 600px;
+            margin: 40px auto 0 auto;
+        }
+
+        /* ===== 按钮通用（机械制图版） ===== */
+        .option-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border: none; border-radius: 15px;
+            padding: 25px 40px; font-size: 20px; font-weight: 600;
+            cursor: pointer; transition: all .3s ease;
+            position: relative; overflow: hidden; text-decoration: none;
+            display: block; box-shadow: 0 8px 25px rgba(102,126,234,.3);
+        }
+        /* 扫光 */
+        .option-btn::before {
+            content: ''; position: absolute; top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.2), transparent);
+            transition: left .5s;
+        }
+        .option-btn:hover::before { left: 100%; }
+        .option-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 35px rgba(102,126,234,.4); }
+        .option-btn:active { transform: translateY(-1px); }
+
+        /* 文字图标 */
+        .option-btn .icon { font-size: 28px; margin-right: 15px; vertical-align: middle; }
+        .option-btn .text { vertical-align: middle; }
+        .option-btn .description {
+            display: block; font-size: 14px; font-weight: 400; opacity: .9;
+            margin-top: 8px; line-height: 1.4;
+        }
+
+        /* ===== 三种自定义渐变色 ===== */
+        .btn-detection {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        .btn-detection:hover {  box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4); }
+
+        .btn-quality-check {
+             background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            box-shadow: 0 8px 25px rgba(86, 171, 47, 0.3);
+        }
+        .btn-quality-check:hover { box-shadow: 0 12px 35px rgba(86, 171, 47, 0.4); }
+
+        .btn-history {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.3);
+        }
+        .btn-history:hover { box-shadow: 0 12px 35px rgba(74, 144, 226, 0.4); }
+
+        .btn-format-standard {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            box-shadow: 0 8px 25px rgba(255,107,107,.3);
+        }
+        .btn-format-standard:hover { box-shadow: 0 12px 35px rgba(255,107,107,.4); }
+
+        /* ===== 页脚 ===== */
+        .footer { margin-top: 40px; padding-top: 30px; border-top: 1px solid #eee; color: #666; font-size: 14px; }
+        .version { font-size: .9em; opacity: .7; }
+
+        /* ===== 加载遮罩 ===== */
+        .loading { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+                   justify-content: center; align-items: center; z-index: 9999; }
+        .loading-content { background: white; padding: 30px; border-radius: 15px;
+                            text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+        .loading-spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3;
+                            border-top: 4px solid #667eea; border-radius: 50%;
+                            animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== 移动端微调 ===== */
+        @media (max-width: 768px) {
+            .container { padding: 30px 20px; }
+            .title { font-size: 2em; }
+            .subtitle { font-size: 1em; }
+            .option-btn { padding: 20px 30px; font-size: 18px; }
+            .option-btn .icon { font-size: 24px; margin-right: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-btn">
+        <span>←</span>
+        <span>返回主页</span>
+    </a>
+
+    <div class="container">
+        <div class="header">
+            <h1 class="title">📊 质量工单检测系统</h1>
+            <p class="subtitle">
+                基于大模型的质量工单数据处理系统<br>
+                自动推理填充规则并进行数据自动填充
+
+            </p>
+        </div>
+
+        <div class="format-reminder">
+            <div class="reminder-icon">💡</div>
+            <div class="reminder-text">
+                <strong>温馨提示：</strong>在进行工单问题点检测或质量工单判定前，建议先查看
+                <span class="highlight-text">工单文件标准格式</span>
+                确保上传的文件格式符合要求，以获得最佳检测效果。
+            </div>
+        </div>
+
+        <div class="options-container">
+            <!-- 上排：两个检测功能 -->
+<!--            <a href="/excel/detection" class="option-btn btn-detection" onclick="showLoading(this)">-->
+<!--                <span class="icon">🔍</span>-->
+<!--                <span class="text">质量工单问题点检测</span>-->
+<!--                <span class="description">上传Excel工单文件，进行智能数据填充处理</span>-->
+<!--            </a>-->
+
+            <a href="/excel/quality-check" class="option-btn btn-quality-check" onclick="showLoading(this)">
+                <span class="icon">🔍</span>
+                <span class="text">质量工单判定</span>
+                <span class="description">检测工单是否为质量工单，智能识别工单类型</span>
+            </a>
+
+            <!-- 下排：左边格式，右边历史 -->
+            <a href="/excel/format-standard" class="option-btn btn-format-standard" onclick="showLoading(this)">
+                <span class="icon">📋</span>
+                <span class="text">工单文件标准格式</span>
+                <span class="description">查看和下载标准的工单文件格式模板</span>
+            </a>
+
+            <a href="/excel/history" class="option-btn btn-history" onclick="showLoading(this)">
+                <span class="icon">📋</span>
+                <span class="text">处理历史</span>
+                <span class="description">查看最近的工单处理历史记录和结果文件</span>
+            </a>
+        </div>
+
+        <div class="footer">
+            <p>🎯 智能 · 高效 · 准确</p>
+            <p class="version">Version 1.0 | Powered by Jiaoyunhuizhi Technology</p>
+        </div>
+    </div>
+
+    <!-- 加载动画 -->
+    <div class="loading" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>正在加载...</p>
+        </div>
+    </div>
+
+    <script>
+        function showLoading(element) {
+            // 添加加载动画
+            const textSpan = element.querySelector('.text');
+            const originalText = textSpan.textContent;
+
+            // 禁用按钮
+            element.style.pointerEvents = 'none';
+            element.style.opacity = '0.7';
+
+            // 显示加载动画
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            // 模拟加载时间
+            setTimeout(() => {
+                window.location.href = element.href;
+            }, 500);
+        }
+
+        // 页面加载动画
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.querySelector('.container');
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(30px)';
+            
+            setTimeout(() => {
+                container.style.transition = 'all 0.8s ease-out';
+                container.style.opacity = '1';
+                container.style.transform = 'translateY(0)';
+            }, 100);
+        });
+    </script>
+</body>
+</html>
