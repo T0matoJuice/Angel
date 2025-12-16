@@ -31,17 +31,12 @@ def drawing_detection():
     """制图检测页面 - 提供PDF文件上传和智能制图规范检测功能"""
     return render_template('drawing_detection.html')
 
+
 @drawing_bp.route('/textbook')
 @login_required
 def drawing_textbook():
-    """制图规范教材下载"""
-
-    # 1. 使用 Flask 的 root_path 动态获取项目根目录
-    # 这样在 Windows 和 Linux 环境下都能正常工作
+    # 1. 基础路径配置
     base_dir = os.path.join(current_app.root_path, "data")
-
-    # 2. 使用 glob 进行模糊搜索
-    # 含义：在 data 目录下找所有名字里包含 "机械制图教材" 且以 .pdf 结尾的文件
     search_pattern = os.path.join(base_dir, "*机械制图教材*.pdf")
     found_files = glob.glob(search_pattern)
 
@@ -49,13 +44,16 @@ def drawing_textbook():
     print(f"找到的文件: {found_files}")
 
     if found_files:
-        # 取找到的第一个文件
+        # --- 成功分支 ---
         target_file = found_files[0]
+        # 【关键修正】：return 必须在 if 里面，也就是要有缩进
         return send_file(target_file, as_attachment=False)
     else:
-        # 如果模糊匹配没找到，打印一下该目录所有文件，方便排查
+        # --- 失败分支 ---
+        # 只有上面的 if 执行完没进入，才会来到这里
         if os.path.exists(base_dir):
             print(f"目录 {base_dir} 下的所有文件: {os.listdir(base_dir)}")
+
         return jsonify({'error': '未找到包含[机械制图教材]的PDF文件'}), 404
 
 @drawing_bp.route('/history')

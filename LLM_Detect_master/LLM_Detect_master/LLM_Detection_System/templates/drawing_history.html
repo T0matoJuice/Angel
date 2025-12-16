@@ -55,14 +55,8 @@
         }
 
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .header {
@@ -79,59 +73,196 @@
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
-        .header p {
-            font-size: 16px;
-            opacity: 0.9;
+        .header p { font-size: 16px; opacity: 0.9; }
+        .content { padding: 30px; color: #333; }
+
+        /* 筛选条 */
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            background: #f3f5f7;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .filter-bar input {
+            height: 32px;
+            padding: 0 10px;
+            border: 1px solid #ccd5db;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .filter-bar label {
+            font-size: 14px;
+            color: #555;
+        }
+        .btn-small {
+            padding: 6px 14px;
+            font-size: 13px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-q {
+            background: #4a90e2;
+            color: #fff;
+        }
+        .btn-r {
+            background: #6c757d;
+            color: #fff;
         }
 
-        .content {
-            padding: 30px;
+        /* 数据类型切换按钮组 */
+        .data-type-switcher {
+            display: flex;
+            gap: 0;
+            margin-left: auto;
+        }
+        .data-type-btn {
+            padding: 6px 16px;
+            font-size: 13px;
+            border: 1px solid #ccd5db;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .data-type-btn:first-child {
+            border-radius: 4px 0 0 4px;
+        }
+        .data-type-btn:last-child {
+            border-radius: 0 4px 4px 0;
+        }
+        .data-type-btn.active {
+            background: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
+        }
+        .data-type-btn:not(.active):hover {
+            background: #e9ecef;
         }
 
-        .loading {
+        /* 表格 */
+        .excel-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .excel-table th,
+        .excel-table td {
+            padding: 10px 12px;
+            border: 1px solid #e9ecef;
+            text-align: left;
+            vertical-align: middle;
+        }
+        .excel-table thead {
+            background: #f8f9fa;
+        }
+        .excel-table tbody tr:nth-child(even) {
+            background: #fafbfc;
+        }
+        .excel-table tbody tr:hover {
+            background: #f1f3f5;
+        }
+        .w-200 { width: 200px; }
+        .w-120 { width: 120px; }
+        .w-180 { width: 180px; }
+        .w-100 { width: 100px; }
+        .btn-prev {
+            background: #4a90e2;
+            color: #fff;
+            padding: 4px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 6px;
+        }
+        .btn-prev:hover { background: #357abd; }
+        .btn-down {
+            background: #6c757d;
+            color: #fff;
+            padding: 4px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-down:hover { background: #5a6268; }
+
+        /* 来源标签样式 */
+        .source-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .source-tag.source-web {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #90caf9;
+        }
+        .source-tag.source-api {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            border: 1px solid #ce93d8;
+        }
+
+        /* 结论标签样式 */
+        .history-conclusion.conclusion-处理完成 {
+            background: #d4edda;
+            color: #155724;
+        }
+        .history-conclusion {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 60px;
             text-align: center;
-            padding: 50px;
-            color: #666;
+        }
+        .conclusion-\u7b26\u5408 {
+            background: #d4edda;
+            color: #155724;
+        }
+        .conclusion-\u4e0d\u7b26\u5408 {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .conclusion-\u57fa\u672c\u7b26\u5408 {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .conclusion-\u57fa\u672c\u4e0d\u7b26\u5408 {
+            background: #f5c6cb;
+            color: #721c24;
         }
 
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
+        /* 空状态 */
         .empty-state {
             text-align: center;
             padding: 80px 20px;
             color: #666;
         }
-
         .empty-state .icon {
             font-size: 64px;
             margin-bottom: 20px;
             opacity: 0.5;
         }
-
         .empty-state h3 {
             font-size: 24px;
             margin-bottom: 10px;
             color: #333;
         }
-
         .empty-state p {
             font-size: 16px;
             margin-bottom: 30px;
         }
-
         .start-detection-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -145,177 +276,12 @@
             text-decoration: none;
             display: inline-block;
         }
-
         .start-detection-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
         }
 
-        .history-list {
-            display: grid;
-            gap: 20px;
-        }
-
-        .history-item {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-            border-left: 4px solid #4a90e2;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .history-item:hover {
-            background: #e9ecef;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .history-filename {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        /* 来源标签样式 */
-        .source-tag {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .source-tag.source-web {
-            background: #e3f2fd;
-            color: #1976d2;
-            border: 1px solid #90caf9;
-        }
-
-        .source-tag.source-api {
-            background: #f3e5f5;
-            color: #7b1fa2;
-            border: 1px solid #ce93d8;
-        }
-
-        .history-time {
-            font-size: 14px;
-            color: #666;
-            margin-left: 20px;
-        }
-
-        .history-user {
-            font-size: 14px;
-            color: #667eea;
-            font-weight: 600;
-            margin-top: 5px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .history-user::before {
-            content: "👤";
-            font-size: 12px;
-        }
-
-        .history-conclusion {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-            margin-left: 15px;
-            min-width: 80px;
-            text-align: center;
-        }
-
-        .conclusion-符合 {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .conclusion-不符合 {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        .conclusion-基本符合 {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .conclusion-基本不符合 {
-            background: #f5c6cb;
-            color: #721c24;
-        }
-
-        .history-preview {
-            color: #666;
-            font-size: 14px;
-            line-height: 1.5;
-            max-height: 60px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-        }
-
-        .view-detail-btn {
-            background: #4a90e2;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 16px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 15px;
-            margin-right: 10px;
-        }
-
-        .view-detail-btn:hover {
-            background: #357abd;
-        }
-
-        .download-btn {
-            background: #6c757d;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 16px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 15px;
-        }
-
-        .download-btn:hover {
-            background: #5a6268;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        /* 详情模态框 */
+        /* 模态框 */
         .modal {
             display: none;
             position: fixed;
@@ -327,43 +293,37 @@
             background-color: rgba(0, 0, 0, 0.5);
             animation: fadeIn 0.3s ease;
         }
-
         .modal-content {
             background-color: white;
-            margin: 3% auto;
+            margin: 5% auto;
             padding: 0;
-            border-radius: 15px;
+            border-radius: 12px;
             width: 95%;
-            max-width: 1000px;
-            max-height: 90vh;
+            max-width: 900px;
+            max-height: 86vh;
             overflow: hidden;
             animation: slideIn 0.3s ease;
         }
-
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
         }
-
         @keyframes slideIn {
-            from { transform: translateY(-50px); opacity: 0; }
+            from { transform: translateY(-30px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
-
         .modal-header {
             background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
             color: white;
-            padding: 20px;
+            padding: 18px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-
         .modal-header h2 {
             margin: 0;
             font-size: 20px;
         }
-
         .close {
             color: white;
             font-size: 28px;
@@ -371,109 +331,70 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-
         .close:hover {
             opacity: 0.7;
         }
-
         .modal-body {
-            padding: 30px;
-            max-height: 70vh;
+            padding: 25px;
+            max-height: calc(86vh - 110px);
             overflow-y: auto;
-        }
-
-        .detail-section {
-            margin-bottom: 25px;
-        }
-
-        .detail-label {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-            font-size: 16px;
-        }
-
-        .detail-content {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
             line-height: 1.6;
-            white-space: pre-wrap;
         }
-
-        .detail-conclusion {
-            display: inline-block;
-            font-weight: 600;
-            font-size: 16px;
-            color: #333;
-        }
-
         .download-report-btn {
             background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 12px 24px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: 6px;
+            padding: 10px 20px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 30px;
+            margin-top: 15px;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 5px;
         }
-
         .download-report-btn:hover {
             background: linear-gradient(135deg, #357abd 0%, #2968a3 100%);
-            transform: translateY(-2px);
+            transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
         }
 
-        .download-section {
+        /* 加载状态 */
+        .loading {
             text-align: center;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #e9ecef;
+            padding: 50px;
+            color: #666;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        /* 响应式设计 */
+        /* 响应式 */
         @media (max-width: 768px) {
-            .container {
-                margin: 10px;
-                border-radius: 10px;
-            }
-
-            .header {
-                padding: 20px;
-            }
-
-            .header h1 {
-                font-size: 24px;
-            }
-
-            .content {
-                padding: 20px;
-            }
-
-            .history-header {
+            .filter-bar {
                 flex-direction: column;
-                align-items: flex-start;
+                align-items: stretch;
                 gap: 10px;
             }
-
-            .history-time {
-                margin-left: 0;
+            .excel-table {
+                font-size: 12px;
             }
-
+            .excel-table th,
+            .excel-table td {
+                padding: 6px 8px;
+            }
             .modal-content {
                 width: 95%;
                 margin: 10% auto;
-            }
-
-            .modal-body {
-                padding: 20px;
             }
         }
     </style>
@@ -487,15 +408,53 @@
     <div class="container">
         <div class="header">
             <h1>📋 制图检测历史记录</h1>
-            <p>查看最近的制图检测记录和详细报告</p>
+            <p>查看/筛选/导出检测结果</p>
         </div>
 
         <div class="content">
-            <div id="historyContent">
-                <div class="loading">
-                    <div class="loading-spinner"></div>
-                    <p>正在加载历史记录...</p>
+            <!-- 筛选条 -->
+            <div class="filter-bar">
+                <label>起止日期</label>
+                <input type="date" id="startDate">
+                <span>至</span>
+                <input type="date" id="endDate">
+                <label>用户名</label>
+                <input type="text" id="userNameKey" placeholder="支持模糊查询">
+                <button class="btn-small btn-q" onclick="doFilter()">查询</button>
+                <button class="btn-small btn-r" onclick="resetFilter()">重置</button>
+
+                <!-- 数据类型切换按钮 -->
+                <div class="data-type-switcher">
+                    <button class="data-type-btn active" onclick="switchDataType('drawing')" id="drawingBtn">制图检测</button>
+                    <button class="data-type-btn" onclick="switchDataType('excel')" id="excelBtn">工单处理</button>
                 </div>
+            </div>
+
+            <!-- 记录表格 -->
+            <table class="excel-table" id="historyTable">
+                <thead>
+                <tr>
+                    <th class="w-200">检测时间</th>
+                    <th>文件名</th>
+                    <th id="usernameCol" class="w-120">用户名</th>
+                    <th class="w-100">结论</th>
+                    <th class="w-180">操作</th>
+                </tr>
+                </thead>
+                <tbody id="historyBody"></tbody>
+            </table>
+
+            <div id="emptyTr" class="empty-state" style="display:none">
+                <div class="icon">📝</div>
+                <h3>暂无检测记录</h3>
+                <p>您还没有进行过制图检测，开始第一次检测吧！</p>
+                <a href="/drawing/detection" class="start-detection-btn">开始检测</a>
+            </div>
+
+            <!-- 加载状态 -->
+            <div id="loadingState" class="loading">
+                <div class="loading-spinner"></div>
+                <p>正在加载历史记录...</p>
             </div>
         </div>
     </div>
@@ -507,110 +466,236 @@
                 <h2 id="modalTitle">检测详情</h2>
                 <span class="close" onclick="closeModal()">&times;</span>
             </div>
-            <div class="modal-body" id="modalBody">
-                <!-- 详情内容将在这里动态加载 -->
-            </div>
+            <div class="modal-body" id="modalBody"></div>
         </div>
     </div>
 
     <script>
+        // 全局变量
+        let rawRecords = [];   // 原始数据
+        let currentDataType = 'drawing'; // 当前数据类型: 'drawing' 或 'excel'
+        const tbody = document.getElementById('historyBody');
+        const emptyTr = document.getElementById('emptyTr');
+        const loadingState = document.getElementById('loadingState');
+
         // 页面加载完成后获取历史记录
         document.addEventListener('DOMContentLoaded', function() {
             loadHistory();
         });
 
+        // 切换数据类型
+        function switchDataType(type){
+            currentDataType = type;
+
+            // 更新按钮样式
+            document.getElementById('drawingBtn').classList.toggle('active', type === 'drawing');
+            document.getElementById('excelBtn').classList.toggle('active', type === 'excel');
+
+            // 更新标题
+            const title = document.querySelector('.header h1');
+            const subtitle = document.querySelector('.header p');
+            if (type === 'drawing') {
+                title.textContent = '📋 制图检测历史记录';
+                subtitle.textContent = '查看/筛选/导出检测结果';
+                document.getElementById('usernameCol').style.display = 'table-cell';
+                emptyTr.innerHTML = `
+                    <div class="icon">📝</div>
+                    <h3>暂无检测记录</h3>
+                    <p>您还没有进行过制图检测，开始第一次检测吧！</p>
+                    <a href="/drawing/detection" class="start-detection-btn">开始检测</a>
+                `;
+            } else {
+                title.textContent = '📋 工单处理历史记录';
+                subtitle.textContent = '查看/筛选/导出处理结果';
+                document.getElementById('usernameCol').style.display = 'none';
+                emptyTr.innerHTML = `
+                    <div class="icon">📊</div>
+                    <h3>暂无处理记录</h3>
+                    <p>您还没有进行过工单处理，开始第一次处理吧！</p>
+                    <a href="/excel/detection" class="start-detection-btn">开始处理</a>
+                `;
+            }
+
+            // 重新加载数据
+            loadHistory();
+        }
+
         // 加载历史记录
-        function loadHistory() {
-            fetch('/drawing/api/history')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        displayHistory(data.records);
+        function loadHistory(){
+            // 显示加载状态
+            tbody.innerHTML = '';
+            loadingState.style.display = 'block';
+            emptyTr.style.display = 'none';
+
+            const apiUrl = currentDataType === 'drawing'
+                ? '/drawing/api/history'
+                : '/excel/api/history';
+
+            fetch(apiUrl)
+                .then(r => r.json())
+                .then(d => {
+                    loadingState.style.display = 'none';
+                    if(d.success){
+                        rawRecords = d.records || [];
+                        renderTable(rawRecords);
                     } else {
-                        showError('获取历史记录失败: ' + data.error);
+                        showError('获取记录失败：' + d.error);
                     }
                 })
-                .catch(error => {
-                    showError('网络错误: ' + error.message);
+                .catch(e => {
+                    loadingState.style.display = 'none';
+                    showError('网络错误：' + e.message);
                 });
         }
 
-        // 显示历史记录列表
-        function displayHistory(records) {
-            const content = document.getElementById('historyContent');
-            
-            if (!records || records.length === 0) {
-                content.innerHTML = `
-                    <div class="empty-state">
-                        <div class="icon">📝</div>
-                        <h3>暂无检测记录</h3>
-                        <p>您还没有进行过制图检测，开始第一次检测吧！</p>
-                        <a href="/drawing/detection" class="start-detection-btn">开始检测</a>
-                    </div>
-                `;
+        // 渲染表格
+        function renderTable(data){
+            tbody.innerHTML = '';
+            if(!data || data.length === 0){
+                emptyTr.style.display = 'block';
                 return;
             }
+            emptyTr.style.display = 'none';
 
-            let html = '<div class="history-list">';
-            
-            records.forEach(record => {
-                const preview = record.detailed_report.length > 100
-                    ? record.detailed_report.substring(0, 100) + '...'
-                    : record.detailed_report;
+            // 设置用户名列显示状态
+            document.getElementById('usernameCol').style.display = currentDataType === 'drawing' ? 'table-cell' : 'none';
 
-                // 生成来源标签
-                const sourceTag = record.source
-                    ? `<span class="source-tag source-${record.source_type || 'web'}">${record.source}</span>`
-                    : '';
+            data.forEach(r => {
+                const tr = document.createElement('tr');
 
-                html += `
-                    <div class="history-item" onclick="viewDetail('${record.id}')">
-                        <div class="history-header">
-                            <div class="history-filename">
-                                ${record.original_filename}
-                                ${sourceTag}
-                            </div>
-                            <div>
-                                <span class="history-conclusion conclusion-${record.conclusion}">${record.conclusion}</span>
-                                <div class="history-time">${record.timestamp}</div>
-                            </div>
-                        </div>
-                        <div class="history-user">传入图纸用户: ${record.account || '未知'}</div>
-                        <div class="history-preview">${preview}</div>
-                        <div class="button-group">
-                            <button class="view-detail-btn" onclick="event.stopPropagation(); viewDetail('${record.id}')">
-                                查看详情
-                            </button>
-                            <button class="download-btn" onclick="event.stopPropagation(); downloadHistoryReport('${record.id}', '${record.original_filename}')">
-                                📥 下载报告
-                            </button>
-                        </div>
-                    </div>
-                `;
+                if (currentDataType === 'drawing') {
+                    // 制图检测数据渲染
+                    const sourceTag = r.source
+                        ? `<span class="source-tag source-${r.source_type || 'web'}">${r.source}</span>`
+                        : '';
+
+                    tr.innerHTML = `
+                        <td>${r.timestamp}</td>
+                        <td>
+                            ${r.original_filename}
+                            ${sourceTag}
+                        </td>
+                        <td>${r.account || '--'}</td>
+                        <td><span class="history-conclusion conclusion-${r.conclusion}">${r.conclusion}</span></td>
+                        <td>
+                            <button class="btn-prev" onclick="viewDetail('${r.id}')">预览</button>
+                            <button class="btn-down" onclick="downloadFile('${r.id}', '${r.original_filename}')">下载</button>
+                        </td>`;
+                } else {
+                    // Excel工单处理数据渲染
+                    // 工单处理的结论显示为 "处理完成" 和行数
+                    const conclusionText = `处理完成 (${r.rows_processed}行)`;
+                    const conclusionClass = 'conclusion-处理完成';
+
+                    tr.innerHTML = `
+                        <td>${r.timestamp}</td>
+                        <td>
+                            ${r.original_filename}
+                            <div style="font-size: 12px; color: #666; margin-top: 4px;">结果: ${r.filename}</div>
+                        </td>
+                        <td style="display: none;">--</td>
+                        <td><span class="history-conclusion ${conclusionClass}">${conclusionText}</span></td>
+                        <td>
+                            <button class="btn-prev" onclick="viewDetail('${r.id}')">预览</button>
+                            <button class="btn-down" onclick="downloadFile('${r.id}', '${r.filename || r.original_filename}', true)">下载</button>
+                        </td>`;
+                }
+                tbody.appendChild(tr);
             });
-            
-            html += '</div>';
-            content.innerHTML = html;
+        }
+
+        // 筛选
+        function doFilter(){
+            const sDate = document.getElementById('startDate').value;
+            const eDate = document.getElementById('endDate').value;
+            const key = document.getElementById('userNameKey').value.trim().toLowerCase();
+
+            const filtered = rawRecords.filter(r => {
+                const t = new Date(r.timestamp);
+                const inDate = (!sDate || t >= new Date(sDate)) && (!eDate || t <= new Date(eDate));
+                // 工单处理模式不筛选用户名
+                const inUser = currentDataType === 'excel' ? true : (!key || (r.account || '').toLowerCase().includes(key));
+                return inDate && inUser;
+            });
+            renderTable(filtered);
+        }
+
+        // 重置筛选
+        function resetFilter(){
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('userNameKey').value = '';
+            renderTable(rawRecords);
         }
 
         // 查看详情
-        function viewDetail(recordId) {
-            fetch(`/drawing/api/history/${recordId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showDetailModal(data.record);
+        function viewDetail(id){
+            const apiUrl = currentDataType === 'drawing'
+                ? `/drawing/api/history/${id}`
+                : `/excel/api/history/${id}`;
+
+            fetch(apiUrl)
+                .then(r => r.json())
+                .then(d => {
+                    if(d.success) {
+                        if (currentDataType === 'drawing') {
+                            showDrawingDetailModal(d.record);
+                        } else {
+                            showExcelDetailModal(d.record);
+                        }
                     } else {
-                        alert('获取详情失败: ' + data.error);
+                        alert('获取详情失败：' + d.error);
                     }
                 })
-                .catch(error => {
-                    alert('网络错误: ' + error.message);
-                });
+                .catch(e => alert('网络错误：' + e.message));
         }
 
-        // 显示详情模态框
-        function showDetailModal(record) {
+        // 下载文件函数（根据数据类型调用不同接口）
+        function downloadFile(recordId, filename, isExcel = false) {
+            if (isExcel || currentDataType === 'excel') {
+                downloadExcelFile(filename);
+            } else {
+                downloadDrawingReport(recordId, filename);
+            }
+        }
+
+        // 下载制图检测报告
+        function downloadDrawingReport(recordId, filename) {
+            fetch(`/drawing/download-report/${recordId}`)
+               .then(response => {
+                   if (response.ok) {
+                       return response.blob();
+                   } else {
+                       return response.json().then(data => {
+                           throw new Error(data.error || '下载失败');
+                        }).catch(() => {
+                           throw new Error('下载失败');
+                        });
+                   }
+               })
+               .then(blob => {
+                   const url = window.URL.createObjectURL(blob);
+                   const a = document.createElement('a');
+                   a.style.display = 'none';
+                   a.href = url;
+                   a.download = `制图检测报告_${filename || 'report'}_${new Date().toISOString().slice(0,10)}.txt`;
+                   document.body.appendChild(a);
+                   a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                })
+                .catch(error => {
+                    alert('下载报告失败: ' + error.message);
+               });
+        }
+
+        // 下载Excel处理结果文件
+        function downloadExcelFile(filename) {
+            window.location.href = `/excel/download/${filename}`;
+        }
+
+        // 显示制图检测详情模态框
+        function showDrawingDetailModal(record) {
             const modal = document.getElementById('detailModal');
             const title = document.getElementById('modalTitle');
             const body = document.getElementById('modalBody');
@@ -624,56 +709,76 @@
 
             // 显示检入者和版本信息（如果有）
             const checkerInfo = record.checker_name
-                ? `<div class="detail-section">
-                    <div class="detail-label">检入者</div>
-                    <div class="detail-content">👤 ${record.checker_name}</div>
-                </div>`
+                ? `<div style="margin-bottom:15px;"><strong>检入者：</strong>${record.checker_name}</div>`
                 : '';
 
             const versionInfo = record.version
-                ? `<div class="detail-section">
-                    <div class="detail-label">版本号</div>
-                    <div class="detail-content">📌 ${record.version}</div>
-                </div>`
+                ? `<div style="margin-bottom:15px;"><strong>版本号：</strong>${record.version}</div>`
                 : '';
 
             body.innerHTML = `
-                <div class="detail-section">
-                    <div class="detail-label">文件名称</div>
-                    <div class="detail-content">${record.original_filename}</div>
-                </div>
+                <div style="margin-bottom:15px;"><strong>文件名称：</strong>${record.original_filename}</div>
 
-                <div class="detail-section">
-                    <div class="detail-label">记录来源</div>
-                    <div class="detail-content">${sourceTag}</div>
-                </div>
+                <div style="margin-bottom:15px;"><strong>记录来源：</strong>${sourceTag}</div>
 
-                <div class="detail-section">
-                    <div class="detail-label">传入图纸用户</div>
-                    <div class="detail-content">👤 ${record.account || '未知'}</div>
-                </div>
+                <div style="margin-bottom:15px;"><strong>传入图纸用户：</strong>${record.account || '--'}</div>
 
                 ${checkerInfo}
                 ${versionInfo}
 
-                <div class="detail-section">
-                    <div class="detail-label">检测时间</div>
-                    <div class="detail-content">${record.timestamp}</div>
+                <div style="margin-bottom:15px;"><strong>检测时间：</strong>${record.timestamp}</div>
+
+                <div style="margin-bottom:15px;">
+                    <strong>检测结论：</strong>
+                    <span class="history-conclusion conclusion-${record.conclusion}">${record.conclusion}</span>
                 </div>
 
-                <div class="detail-section">
-                    <div class="detail-label">检测结论</div>
-                    <div class="detail-content">${record.conclusion}</div>
+                <div style="margin-bottom:15px;"><strong>详细报告：</strong></div>
+                <div style="background:#f8f9fa;padding:15px;border-radius:6px;white-space:pre-wrap;line-height:1.6;">${record.detailed_report}</div>
+
+                <div style="text-align:center;margin-top:20px;">
+                    <button class="download-report-btn" onclick="downloadFile('${record.id}', '${record.original_filename}')">
+                        📥 下载报告
+                    </button>
+                </div>
+            `;
+
+            modal.style.display = 'block';
+        }
+
+        // 显示Excel工单处理详情模态框
+        function showExcelDetailModal(record) {
+            const modal = document.getElementById('detailModal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+
+            title.textContent = `处理详情 - ${record.original_filename}`;
+
+            body.innerHTML = `
+                <div style="margin-bottom:15px;">
+                    <strong>原始文件名：</strong>${record.original_filename}
                 </div>
 
-                <div class="detail-section">
-                    <div class="detail-label">详细报告</div>
-                    <div class="detail-content">${record.detailed_report}</div>
+                <div style="margin-bottom:15px;">
+                    <strong>处理时间：</strong>${record.timestamp}
                 </div>
 
-                <div class="download-section">
-                    <button class="download-report-btn" onclick="downloadHistoryReport('${record.id}', '${record.original_filename}')">
-                        📥 下载TXT报告
+                <div style="margin-bottom:15px;">
+                    <strong>处理状态：</strong>
+                    <span class="history-conclusion conclusion-处理完成">处理完成</span>
+                </div>
+
+                <div style="margin-bottom:15px;">
+                    <strong>处理结果：</strong>成功处理 ${record.rows_processed} 行数据
+                </div>
+
+                <div style="margin-bottom:15px;">
+                    <strong>结果文件：</strong>${record.filename}
+                </div>
+
+                <div style="text-align:center;margin-top:20px;">
+                    <button class="download-report-btn" onclick="downloadFile('${record.id}', '${record.filename}', true)">
+                        📥 下载处理结果
                     </button>
                 </div>
             `;
@@ -694,51 +799,19 @@
             }
         }
 
-        // 下载历史报告
-        function downloadHistoryReport(recordId, filename) {
-            // 直接通过 GET 请求下载报告
-            // 使用 fetch + blob 方式实现下载，以便处理错误
-            fetch(`/drawing/download-report/${recordId}`)
-                .then(response => {
-                    if (response.ok) {
-                        return response.blob();
-                    } else {
-                        // 尝试解析错误信息
-                        return response.json().then(data => {
-                            throw new Error(data.error || '下载失败');
-                        }).catch(() => {
-                            throw new Error('下载失败');
-                        });
-                    }
-                })
-                .then(blob => {
-                    // 创建下载链接
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = `制图检测报告_${filename || 'report'}_${new Date().toISOString().slice(0,10)}.txt`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                })
-                .catch(error => {
-                    alert('下载报告失败: ' + error.message);
-                });
-        }
-
         // 显示错误信息
         function showError(message) {
             const content = document.getElementById('historyContent');
-            content.innerHTML = `
-                <div class="empty-state">
-                    <div class="icon">❌</div>
-                    <h3>加载失败</h3>
-                    <p>${message}</p>
-                    <button class="start-detection-btn" onclick="loadHistory()">重试</button>
-                </div>
-            `;
+            if (content) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">❌</div>
+                        <h3>加载失败</h3>
+                        <p>${message}</p>
+                        <button class="start-detection-btn" onclick="loadHistory()">重试</button>
+                    </div>
+                `;
+            }
         }
     </script>
 </body>
