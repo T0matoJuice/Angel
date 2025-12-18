@@ -608,33 +608,33 @@
     }
   });
 
-  // 添加键盘快捷键
-  document.addEventListener('keydown', function(e) {
-    if (e.ctrlKey) {
-      switch(e.key) {
-        case '1':
-          e.preventDefault();
-          enterSystem('drawing');
-          break;
-        case '2':
-          e.preventDefault();
-          enterSystem('excel');
-          break;
-        case '3':
-          e.preventDefault();
-          enterSystem('drawing-history');
-          break;
-        case '4':
-          e.preventDefault();
-          enterSystem('excel-history');
-          break;
-        case 'h':
-          e.preventDefault();
-          window.location.href = '/';
-          break;
-      }
-    }
-  });
+  {#// 添加键盘快捷键#}
+  {#document.addEventListener('keydown', function(e) {#}
+  {#  if (e.ctrlKey) {#}
+  {#    switch(e.key) {#}
+  {#      case '1':#}
+  {#        e.preventDefault();#}
+  {#        enterSystem('drawing');#}
+  {#        break;#}
+  {#      case '2':#}
+  {#        e.preventDefault();#}
+  {#        enterSystem('excel');#}
+  {#        break;#}
+  {#      case '3':#}
+  {#        e.preventDefault();#}
+  {#        enterSystem('drawing-history');#}
+  {#        break;#}
+  {#      case '4':#}
+  {#        e.preventDefault();#}
+  {#        enterSystem('excel-history');#}
+  {#        break;#}
+  {#      case 'h':#}
+  {#        e.preventDefault();#}
+  {#        window.location.href = '/';#}
+  {#        break;#}
+  {#    }#}
+  {#  }#}
+  {#});#}
 </script>
 </body>
 </html>
