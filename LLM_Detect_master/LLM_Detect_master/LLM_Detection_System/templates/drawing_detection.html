@@ -97,8 +97,8 @@
         }
 
         .pdf-preview img {
-            max-width: 100%;
-            max-height: 100%;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
             border-radius: 4px;
             cursor: pointer;
@@ -776,6 +776,15 @@
                     </div>
                 </div>
 
+                <!-- 图纸文档编号输入框 -->
+                <div class="form-group">
+                    <label for="drawingNumberInput">
+                        <span class="required-mark">*</span> 图纸文档编号
+                    </label>
+                    <input type="text" id="drawingNumberInput" class="form-input" placeholder="请输入图纸文档编号">
+                    <span class="error-message" id="drawingNumberError"></span>
+                </div>
+
                 <!-- 检入者输入框 -->
                 <div class="form-group">
                     <label for="checkerNameInput">
@@ -792,6 +801,15 @@
                     </label>
                     <input type="text" id="versionInput" class="form-input" placeholder="请输入版本号（如：V1.0）">
                     <span class="error-message" id="versionError"></span>
+                </div>
+
+                <!-- 图纸类型输入框 -->
+                <div class="form-group">
+                    <label for="drawingTypeInput">
+                        <span class="required-mark">*</span> 图纸类型
+                    </label>
+                    <input type="text" id="drawingTypeInput" class="form-input" placeholder="请输入图纸类型">
+                    <span class="error-message" id="drawingTypeError"></span>
                 </div>
 
                 <!-- 提示信息 -->
@@ -875,6 +893,14 @@
                 return false;
             }
 
+            // 验证图纸文档编号
+            const engineeringDrawingId = document.getElementById('drawingNumberInput').value.trim();
+            if (!engineeringDrawingId) {
+                document.getElementById('drawingNumberError').textContent = '请输入图纸文档编号';
+                document.getElementById('drawingNumberInput').classList.add('error');
+                isValid = false;
+            }
+
             // 验证检入者
             const checkerName = document.getElementById('checkerNameInput').value.trim();
             if (!checkerName) {
@@ -891,6 +917,14 @@
                 isValid = false;
             }
 
+            // 验证图纸类型
+            const drawingType = document.getElementById('drawingTypeInput').value.trim();
+            if (!drawingType) {
+                document.getElementById('drawingTypeError').textContent = '请输入图纸类型';
+                document.getElementById('drawingTypeInput').classList.add('error');
+                isValid = false;
+            }
+
             return isValid;
         }
 
@@ -900,22 +934,26 @@
                 return;
             }
 
+            const engineeringDrawingId = document.getElementById('drawingNumberInput').value.trim();
             const checkerName = document.getElementById('checkerNameInput').value.trim();
             const version = document.getElementById('versionInput').value.trim();
+            const drawingType = document.getElementById('drawingTypeInput').value.trim();
 
             // 关闭模态框
             closeUploadModal();
 
             // 上传文件
-            uploadFile(selectedFile, checkerName, version);
+            uploadFile(selectedFile, engineeringDrawingId, checkerName, version, drawingType);
         }
 
         // 上传文件到服务器（新版本：上传后自动开始检测）
-        function uploadFile(file, checkerName, version) {
+        function uploadFile(file, engineeringDrawingId, checkerName, version, drawingType) {
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('engineering_drawing_id', engineeringDrawingId);
             formData.append('checker_name', checkerName);
             formData.append('version', version);
+            formData.append('drawing_type', drawingType);
 
             updateStatus('正在上传文件...', 'uploading');
 
@@ -944,12 +982,12 @@
                 updateStatus('上传失败，请重试', 'error');
             });
         }
-        
+
         // 加载PDF预览
         function loadPreview(previewUrl) {
             const preview = document.getElementById('pdfPreview');
             preview.innerHTML = '<div style="color: #667eea;">📄 正在生成预览...</div>';
-            
+
             fetch(previewUrl)
             .then(response => response.json())
             .then(data => {
@@ -964,7 +1002,7 @@
                 preview.innerHTML = '<div style="color: #999;">📄 预览加载失败<br><small>不影响检测功能</small></div>';
             });
         }
-        
+
         // 开始检测（新版本：启动状态轮询）
         function startDetection() {
             if (!currentRecordId || isDetecting) return;
@@ -1070,7 +1108,7 @@
                 // 不中断轮询，继续尝试
             });
         }
-        
+
         // 结束检测（停止轮询）
         function stopDetection() {
             if (isDetecting) {
@@ -1096,7 +1134,7 @@
                 `;
             }
         }
-        
+
         // 重新上传
         function resetAll() {
             // 停止轮询
@@ -1140,7 +1178,7 @@
             updateStatus('等待上传PDF文件', 'waiting');
             updateButtons('initial');
         }
-        
+
         // 显示检测结果
         function showResult(conclusion, report) {
             // 显示检测结论
@@ -1172,50 +1210,30 @@
             downloadSection.innerHTML = `
                 <h4 style="margin-bottom: 15px; color: #333;">📥 下载检测报告</h4>
                 <button class="download-btn" onclick="downloadReport('txt', '${conclusion}')">
-                    📄 下载TXT格式
+                    📄 下载PDF检测报告
                 </button>
             `;
         }
 
-        // 下载报告
+       // 下载报告
         function downloadReport(format, conclusion) {
-            const reportContent = document.getElementById('reportContent').innerText;
-            const timestamp = new Date().toLocaleString();
+            // 如果没有recordId，说明检测还未完成或记录丢失
+            if (!currentRecordId) {
+                alert('无法下载：检测记录ID不存在');
+                return;
+            }
 
-            const reportData = {
-                conclusion: conclusion,
-                content: reportContent,
-                timestamp: timestamp,
-                format: format
-            };
+            // 使用新的下载接口（GET方式，下载合并后的PDF）
+            const downloadUrl = `/drawing/download-report/${currentRecordId}`;
 
-            // 发送下载请求
-            fetch('/drawing/download-report', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(reportData)
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.blob();
-                } else {
-                    throw new Error('下载失败');
-                }
-            })
-            .then(blob => {
-                // 创建下载链接
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `制图检测报告_${new Date().toISOString().slice(0,10)}.${format}`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-            })
-            .catch(error => {
-                alert('下载失败: ' + error.message);
-            });
+            // 创建下载链接
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `检测报告_${new Date().toISOString().slice(0,10)}.pdf`;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
 
         // PDF预览图片放大功能
@@ -1252,7 +1270,7 @@
         function updateStatus(text, type) {
             const statusElement = document.getElementById('statusText');
             statusElement.textContent = text;
-            
+
             // 根据状态类型设置颜色
             const colors = {
                 'waiting': '#666',
@@ -1265,7 +1283,7 @@
             };
             statusElement.style.color = colors[type] || '#666';
         }
-        
+
         // 更新按钮状态
         function updateButtons(state) {
             const stopBtn = document.getElementById('stopBtn');
@@ -1291,3 +1309,4 @@
     </script>
 </body>
 </html>
+

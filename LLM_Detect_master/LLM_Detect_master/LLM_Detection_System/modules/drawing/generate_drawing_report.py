@@ -31,7 +31,7 @@ FONT_BOLD = 'Helvetica-Bold'
 
 try:
     system = platform.system()
-    
+
     if system == 'Windows':
         # Windows 系统字体
         pdfmetrics.registerFont(TTFont('SimSun', 'C:/Windows/Fonts/simsun.ttc'))
@@ -39,21 +39,21 @@ try:
         FONT_NAME = 'SimSun'
         FONT_BOLD = 'SimHei'
         print("✓ 已加载 Windows 中文字体")
-    
+
     elif system == 'Linux':
         # Linux 系统字体(优先中文字体)
         linux_fonts = [
             ('/usr/share/fonts/truetype/wqy/wqy-microhei.ttc', 'WQYMicroHei'),  # 文泉驿微米黑
-            ('/usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc', 'WQYZenHei'),        # 文泉驿正黑
+            ('/usr/share/fonts/wqy-zenhei/wqy-zenhei.ttc', 'WQYZenHei'),  # 文泉驿正黑
             ('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 'DejaVuSans'),  # DejaVu(仅英文)
         ]
-        
+
         for font_path, font_name in linux_fonts:
             if os.path.exists(font_path):
                 pdfmetrics.registerFont(TTFont(font_name, font_path))
                 FONT_NAME = font_name
                 FONT_BOLD = font_name
-                
+
                 if 'DejaVu' in font_name:
                     print(f"⚠️  已加载 Linux 字体: {font_name} (不支持中文,仅显示英文)")
                     print("   建议安装中文字体: sudo apt-get install fonts-wqy-microhei")
@@ -63,7 +63,7 @@ try:
         else:
             print("⚠️  警告: 未找到任何可用字体，中文可能无法正常显示")
             print("   建议安装: sudo apt-get install fonts-wqy-microhei")
-    
+
     else:
         print(f"⚠️  警告: 未识别的操作系统 ({system})，使用默认字体")
 
@@ -79,89 +79,95 @@ def extract_field_value(text: str, field_name: str) -> str:
     """从文本中提取指定字段的值"""
     pattern = rf'-\s*{re.escape(field_name)}[:：]\s*(.+?)(?=\n-|\n\*\*|$)'
     match = re.search(pattern, text, re.DOTALL)
-    
+
     if match:
         value = match.group(1).strip()
         value = re.sub(r'\s+', ' ', value)
         return value
-    
+
     return ""
 
 
 def parse_detection_result(result_block: str, index: int) -> Dict[str, str]:
     """解析单个检测结果块"""
     data = {}
-    
+
     data[f'content_{index}'] = extract_field_value(result_block, '发现内容')
     data[f'result_{index}'] = extract_field_value(result_block, '检测结果')
     data[f'position_{index}'] = extract_field_value(result_block, '位置描述')
     data[f'reason_{index}'] = extract_field_value(result_block, '符合/不符合原因')
     data[f'suggest_{index}'] = extract_field_value(result_block, '修改建议')
-    
+
     return data
 
 
 def parse_detailed_report(detailed_report: str) -> Dict[str, str]:
     """解析完整的detailed_report字段"""
     all_data = {}
-    
+
     pattern = r'第(\d+)条检测结果[^\n]*\n(.*?)(?=第\d+条检测结果|检测统计：|$)'
     matches = re.findall(pattern, detailed_report, re.DOTALL)
-    
+
     print(f"找到 {len(matches)} 条检测结果")
-    
+
     for match in matches:
         index = int(match[0])
         result_block = match[1]
-        
+
         if 1 <= index <= 12:
             result_data = parse_detection_result(result_block, index)
             all_data.update(result_data)
             print(f"已解析第 {index} 条检测结果")
-    
+
     return all_data
 
 
-def update_drawing_detection(engineering_drawing_id: str, data: Dict[str, str]) -> bool:
-    """将解析的数据更新到drawing_detection表"""
+def update_drawing_detection(record_id: int, engineering_drawing_id: str, data: Dict[str, str]) -> bool:
+    """将解析的数据更新到drawing_detection表
+
+    Args:
+        record_id: drawing_data表的自增ID
+        engineering_drawing_id: 图纸文档编号
+        data: 解析后的字段数据
+    """
     try:
         # 使用原生SQL查询检查记录是否存在
-        sql_check = "SELECT id FROM drawing_detection WHERE engineering_drawing_id = :id"
-        result = db.session.execute(db.text(sql_check), {"id": engineering_drawing_id})
+        sql_check = "SELECT id FROM drawing_detection WHERE id = :id"
+        result = db.session.execute(db.text(sql_check), {"id": record_id})
         existing = result.fetchone()
-        
+
         if existing:
-            # 更新记录
-            set_clauses = []
-            params = {"id": engineering_drawing_id}
-            
+            # 更新记录（包括engineering_drawing_id）
+            set_clauses = ["engineering_drawing_id = :engineering_drawing_id"]
+            params = {"id": record_id, "engineering_drawing_id": engineering_drawing_id}
+
             for field, value in data.items():
                 if value:
                     set_clauses.append(f"{field} = :{field}")
                     params[field] = value
-            
+
             if set_clauses:
-                sql_update = f"UPDATE drawing_detection SET {', '.join(set_clauses)} WHERE engineering_drawing_id = :id"
+                sql_update = f"UPDATE drawing_detection SET {', '.join(set_clauses)} WHERE id = :id"
                 db.session.execute(db.text(sql_update), params)
                 db.session.commit()
-                print(f"成功更新 engineering_drawing_id={engineering_drawing_id} 的记录")
+                print(f"成功更新 ID={record_id}, engineering_drawing_id={engineering_drawing_id} 的记录")
                 return True
             else:
                 print("没有数据需要更新")
                 return False
         else:
-            # 插入新记录
-            fields = ['engineering_drawing_id'] + list(data.keys())
+            # 插入新记录（同时写入id和engineering_drawing_id）
+            fields = ['id', 'engineering_drawing_id'] + list(data.keys())
             placeholders = [f":{field}" for field in fields]
-            params = {"engineering_drawing_id": engineering_drawing_id}
+            params = {"id": record_id, "engineering_drawing_id": engineering_drawing_id}
             params.update(data)
-            
+
             sql_insert = f"INSERT INTO drawing_detection ({', '.join(fields)}) VALUES ({', '.join(placeholders)})"
             db.session.execute(db.text(sql_insert), params)
             db.session.commit()
-            print(f"成功插入 engineering_drawing_id={engineering_drawing_id} 的新记录")
+            print(f"成功插入 ID={record_id}, engineering_drawing_id={engineering_drawing_id} 的新记录")
             return True
-            
+
     except Exception as e:
         print(f"数据库操作错误: {e}")
         db.session.rollback()
@@ -172,11 +178,16 @@ def update_drawing_detection(engineering_drawing_id: str, data: Dict[str, str]) 
 
 # ========== 第二部分：生成PDF报告 ==========
 
-def fetch_detection_data(engineering_drawing_id: str) -> Optional[Dict]:
-    """从数据库获取检测数据"""
+def fetch_detection_data(record_id: int) -> Optional[Dict]:
+    """从数据库获取检测数据
+
+    Args:
+        record_id: drawing_data表的自增ID
+    """
     try:
         query = """
             SELECT 
+                d1.id,
                 d1.engineering_drawing_id,
                 d1.original_filename,
                 d1.version,
@@ -186,20 +197,20 @@ def fetch_detection_data(engineering_drawing_id: str) -> Optional[Dict]:
                 d1.checker_name,
                 d2.*
             FROM drawing_data d1
-            LEFT JOIN drawing_detection d2 ON d1.engineering_drawing_id = d2.engineering_drawing_id
-            WHERE d1.engineering_drawing_id = :id
+            LEFT JOIN drawing_detection d2 ON d1.id = d2.id
+            WHERE d1.id = :id
         """
-        
-        result = db.session.execute(db.text(query), {"id": engineering_drawing_id})
+
+        result = db.session.execute(db.text(query), {"id": record_id})
         row = result.fetchone()
-        
+
         if row:
             # 将结果转换为字典
             columns = result.keys()
             return dict(zip(columns, row))
-        
+
         return None
-        
+
     except Exception as e:
         print(f"数据库查询错误: {e}")
         return None
@@ -208,26 +219,26 @@ def fetch_detection_data(engineering_drawing_id: str) -> Optional[Dict]:
 def extract_drawing_info(engineering_drawing_id: str, filename: str):
     """从数据库字段中提取图号和名称"""
     drawing_number = engineering_drawing_id if engineering_drawing_id else "未知"
-    
+
     drawing_name = filename
     if drawing_name and drawing_name.endswith('.pdf'):
         drawing_name = drawing_name[:-4]
-    
+
     return drawing_number, drawing_name
 
 
 def create_header_table(data: dict):
     """创建报告头部信息表格"""
     drawing_number, drawing_name = extract_drawing_info(
-        data['engineering_drawing_id'], 
+        data['engineering_drawing_id'],
         data['original_filename']
     )
-    
+
     upload_time = data['created_at'] if data['created_at'] else ''
     detection_time = data['completed_at'] if data['completed_at'] else ''
-    
+
     detection_date = detection_time.split(' ')[0] if ' ' in detection_time else detection_time
-    
+
     header_data = [
         ['试验编码时间日期：', f'{detection_date}'],
         ['1. 图纸基本信息', ''],
@@ -236,9 +247,10 @@ def create_header_table(data: dict):
         ['版本：', data['version'] if data['version'] else '无'],
         ['上传时间：', upload_time],
         ['检测时间：', detection_time],
+        ['检入者：', data['checker_name'] if data['checker_name'] else '未知'],
     ]
-    
-    header_table = Table(header_data, colWidths=[4*cm, 14*cm])
+
+    header_table = Table(header_data, colWidths=[4 * cm, 14 * cm])
     header_table.setStyle(TableStyle([
         ('FONT', (0, 0), (-1, -1), FONT_NAME, 10),
         ('FONT', (0, 1), (0, 1), FONT_BOLD, 11),
@@ -247,7 +259,7 @@ def create_header_table(data: dict):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('SPAN', (0, 1), (1, 1)),
     ]))
-    
+
     return header_table
 
 
@@ -255,7 +267,7 @@ def create_summary_table(data: dict):
     """创建检测摘要表格"""
     conform_count = 0
     non_conform_count = 0
-    
+
     for i in range(1, 13):
         result_field = f'result_{i}'
         if result_field in data and data[result_field]:
@@ -264,17 +276,17 @@ def create_summary_table(data: dict):
                 conform_count += 1
             elif '不符合' in result:
                 non_conform_count += 1
-    
+
     conclusion = data['conclusion'] if data['conclusion'] else '基本不符合'
-    
+
     summary_data = [
         ['2. 检测摘要', ''],
         ['检测结论：', conclusion],
         ['符合项目数：', str(conform_count)],
         ['不符合项目数：', str(non_conform_count)],
     ]
-    
-    summary_table = Table(summary_data, colWidths=[4*cm, 14*cm])
+
+    summary_table = Table(summary_data, colWidths=[4 * cm, 14 * cm])
     summary_table.setStyle(TableStyle([
         ('FONT', (0, 0), (-1, -1), FONT_NAME, 10),
         ('FONT', (0, 0), (0, 0), FONT_BOLD, 11),
@@ -284,36 +296,46 @@ def create_summary_table(data: dict):
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('SPAN', (0, 0), (1, 0)),
     ]))
-    
+
     return summary_table
 
 
 def create_detail_table(data: dict):
     """创建详细检测结果表格"""
     detail_data = [
-        ['检测项目', '检测结果', '发现内容', '位置描述', '修改建议']
+        ['检测项目', '检测结果', '发现内容', '符合/不符合原因', '位置描述', '修改建议']
     ]
-    
+
+    # 12个检测项目的名称（按固定顺序）
+    point_names = [
+        '公差表检查',
+        '公差精确度检测',
+        '关键尺寸识别',
+        '技术要求检测',
+        '人员参数检查',
+        '未注公差表检查',
+        '安吉尔LOGO检查',
+        '图号检查',
+        '中文名称检查',
+        '材料信息检查',
+        '版本号检查',
+        '图号检查'
+    ]
+
     for i in range(1, 13):
         content = str(data.get(f'content_{i}', '') or '')
         result = str(data.get(f'result_{i}', '') or '')
         position = str(data.get(f'position_{i}', '') or '')
         reason = str(data.get(f'reason_{i}', '') or '')
         suggest = str(data.get(f'suggest_{i}', '') or '')
-        
-        project = ''
-        if reason:
-            project = reason[:40] + '...' if len(reason) > 40 else reason
-        elif content:
-            project = content[:40] + '...' if len(content) > 40 else content
-        
+
         suggestion = suggest if suggest else '无'
         result_text = result if result else ''
         is_non_conform = '不符合' in result_text
-        
+
         detail_data.append([
-            Paragraph(project, ParagraphStyle(
-                name='Normal',
+            Paragraph(point_names[i - 1], ParagraphStyle(
+                name='ProjectName',
                 fontName=FONT_NAME,
                 fontSize=8,
                 leading=11,
@@ -334,6 +356,13 @@ def create_detail_table(data: dict):
                 leading=10,
                 wordWrap='CJK'
             )),
+            Paragraph(reason if reason else '无', ParagraphStyle(
+                name='Reason',
+                fontName=FONT_NAME,
+                fontSize=8,
+                leading=11,
+                wordWrap='CJK'
+            )),
             Paragraph(position if position else '无', ParagraphStyle(
                 name='Position',
                 fontName=FONT_NAME,
@@ -349,9 +378,9 @@ def create_detail_table(data: dict):
                 wordWrap='CJK'
             ))
         ])
-    
-    detail_table = Table(detail_data, colWidths=[3.2*cm, 1.8*cm, 4.8*cm, 3*cm, 4.7*cm])
-    
+
+    detail_table = Table(detail_data, colWidths=[2.5 * cm, 1.5 * cm, 3.8 * cm, 2.8 * cm, 2.5 * cm, 3.8 * cm])
+
     table_style = [
         ('FONT', (0, 0), (-1, 0), FONT_BOLD, 9),
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E8E8E8')),
@@ -365,16 +394,16 @@ def create_detail_table(data: dict):
         ('TOPPADDING', (0, 0), (-1, -1), 5),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
     ]
-    
+
     for i in range(1, 13):
         result = str(data.get(f'result_{i}', '') or '')
         if '不符合' in result:
             table_style.append(
                 ('BACKGROUND', (0, i), (-1, i), colors.HexColor('#FFF8DC'))
             )
-    
+
     detail_table.setStyle(TableStyle(table_style))
-    
+
     return detail_table
 
 
@@ -382,7 +411,7 @@ def merge_pdfs(original_pdf_path: str, new_pdf_path: str, output_path: str):
     """合并两个PDF文件"""
     try:
         pdf_writer = PdfWriter()
-        
+
         if os.path.exists(original_pdf_path):
             print(f"读取原始PDF: {original_pdf_path}")
             original_pdf = PdfReader(original_pdf_path)
@@ -391,24 +420,24 @@ def merge_pdfs(original_pdf_path: str, new_pdf_path: str, output_path: str):
             print(f"已添加原始PDF的 {len(original_pdf.pages)} 页")
         else:
             print(f"警告: 原始PDF不存在: {original_pdf_path}")
-        
+
         print(f"读取报告PDF: {new_pdf_path}")
         report_pdf = PdfReader(new_pdf_path)
         for page in report_pdf.pages:
             pdf_writer.add_page(page)
         print(f"已添加报告PDF的 {len(report_pdf.pages)} 页")
-        
+
         with open(output_path, 'wb') as output_file:
             pdf_writer.write(output_file)
-        
+
         print(f"✓ PDF合并成功: {output_path}")
-        
+
         if os.path.exists(new_pdf_path) and new_pdf_path != output_path:
             os.remove(new_pdf_path)
             print(f"已删除临时文件: {new_pdf_path}")
-        
+
         return True
-        
+
     except Exception as e:
         print(f"✗ PDF合并失败: {e}")
         import traceback
@@ -418,93 +447,97 @@ def merge_pdfs(original_pdf_path: str, new_pdf_path: str, output_path: str):
 
 # ========== 主函数：整合所有功能 ==========
 
-def process_drawing_report(engineering_drawing_id: str, output_path: str) -> bool:
+def process_drawing_report(record_id: str, output_path: str) -> bool:
     """
     处理工程图纸检测报告（完整流程）
-    
+
     Args:
-        engineering_drawing_id: 工程图纸ID
+        record_id: 数据库记录ID（自增ID）
         output_path: 输出PDF文件路径（原始PDF路径）
-        
+
     Returns:
         成功返回True，失败返回False
     """
     print("=" * 80)
     print("工程图纸检测报告处理工具")
     print("=" * 80)
-    print(f"工程图纸ID: {engineering_drawing_id}")
+    print(f"数据库记录ID: {record_id}")
     print(f"输出路径: {output_path}")
     print()
-    
+
     # 步骤1: 读取并解析 detailed_report
     print("步骤 1/3: 解析 detailed_report 字段")
     print("-" * 80)
-    
+
     try:
-        sql = "SELECT detailed_report FROM drawing_data WHERE engineering_drawing_id = :id"
-        result = db.session.execute(db.text(sql), {"id": engineering_drawing_id})
+        # 使用数据库自增ID查询
+        sql = "SELECT id, engineering_drawing_id, detailed_report FROM drawing_data WHERE id = :id"
+        result = db.session.execute(db.text(sql), {"id": int(record_id)})
         row = result.fetchone()
-        
-        if not row or not row[0]:
-            print(f"✗ 未找到 engineering_drawing_id={engineering_drawing_id} 的记录或detailed_report为空")
+
+        if not row or not row[2]:
+            print(f"✗ 未找到 ID={record_id} 的记录或detailed_report为空")
             return False
-        
-        detailed_report = row[0]
-        print(f"✓ 成功读取detailed_report，长度: {len(detailed_report)} 字符")
+
+        db_id = row[0]
+        engineering_drawing_id = row[1]
+        detailed_report = row[2]
+        print(f"✓ 成功读取记录: ID={db_id}, engineering_drawing_id={engineering_drawing_id}")
+        print(f"✓ detailed_report长度: {len(detailed_report)} 字符")
         print()
-        
+
         # 解析detailed_report
         parsed_data = parse_detailed_report(detailed_report)
         print(f"✓ 解析完成，共提取 {len(parsed_data)} 个字段")
         print()
-        
+
     except Exception as e:
         print(f"✗ 解析失败: {e}")
         import traceback
         traceback.print_exc()
         return False
-    
-    # 步骤2: 写入 drawing_detection 表
+
+    # 步骤2: 写入 drawing_detection 表（使用数据库ID和engineering_drawing_id）
     print("步骤 2/3: 写入 drawing_detection 表")
     print("-" * 80)
-    
-    if not update_drawing_detection(engineering_drawing_id, parsed_data):
+
+    if not update_drawing_detection(db_id, engineering_drawing_id, parsed_data):
         print("✗ 数据写入失败")
         return False
-    
+
     print("✓ 数据写入成功")
     print()
-    
+
     # 步骤3: 生成PDF报告
     print("步骤 3/3: 生成PDF报告")
     print("-" * 80)
-    
+
     try:
-        # 获取完整数据
-        data = fetch_detection_data(engineering_drawing_id)
-        
+        # 获取完整数据（使用数据库ID）
+        data = fetch_detection_data(db_id)
+
         if not data:
             print("✗ 未能获取检测数据")
             return False
-        
+
         print(f"✓ 成功获取数据，图纸文件: {data['original_filename']}")
-        
+
         # 创建临时PDF文件
         temp_report_path = output_path.replace('.pdf', '_report_temp.pdf')
-        
-        # 创建PDF文档
+
+        # 创建PDF文档（A3尺寸）
         doc = SimpleDocTemplate(
             temp_report_path,
             pagesize=A4,
-            rightMargin=1.5*cm,
-            leftMargin=1.5*cm,
-            topMargin=1.5*cm,
-            bottomMargin=1.5*cm
+            rightMargin=1.5 * cm,
+            leftMargin=1.5 * cm,
+            topMargin=1.5 * cm,
+            bottomMargin=1.5 * cm
         )
-        
+
         # 构建文档内容
         story = []
-        
+
         # 标题
         title_style = ParagraphStyle(
             name='Title',
@@ -515,22 +548,22 @@ def process_drawing_report(engineering_drawing_id: str, output_path: str) -> boo
             textColor=colors.HexColor('#CC0000'),
             spaceAfter=15
         )
-        
+
         conclusion = data['conclusion'] if data['conclusion'] else '基本不符合'
         title = Paragraph(conclusion, title_style)
         story.append(title)
-        story.append(Spacer(1, 0.3*cm))
-        
+        story.append(Spacer(1, 0.3 * cm))
+
         # 头部信息表格
         header_table = create_header_table(data)
         story.append(header_table)
-        story.append(Spacer(1, 0.4*cm))
-        
+        story.append(Spacer(1, 0.4 * cm))
+
         # 检测摘要表格
         summary_table = create_summary_table(data)
         story.append(summary_table)
-        story.append(Spacer(1, 0.4*cm))
-        
+        story.append(Spacer(1, 0.4 * cm))
+
         # 详细检测结果
         detail_title_style = ParagraphStyle(
             name='DetailTitle',
@@ -541,15 +574,15 @@ def process_drawing_report(engineering_drawing_id: str, output_path: str) -> boo
         )
         detail_title = Paragraph('3. 详细检测结果', detail_title_style)
         story.append(detail_title)
-        
+
         detail_table = create_detail_table(data)
         story.append(detail_table)
-        story.append(Spacer(1, 0.4*cm))
-        
+        story.append(Spacer(1, 0.4 * cm))
+
         # 总结评估
         eval_title = Paragraph('4. 总结评估', detail_title_style)
         story.append(eval_title)
-        
+
         # 统计符合与不符合的条数
         conform_count = 0
         non_conform_count = 0
@@ -561,10 +594,10 @@ def process_drawing_report(engineering_drawing_id: str, output_path: str) -> boo
                     conform_count += 1
                 elif '不符合' in result:
                     non_conform_count += 1
-        
+
         conclusion = data['conclusion']
         eval_text = f'本次检测共检测12个项目，其中符合项目{conform_count}项，不符合项目{non_conform_count}项。最终判定结果为：{conclusion}。'
-        
+
         eval_style = ParagraphStyle(
             name='Eval',
             fontName=FONT_NAME,
@@ -575,11 +608,11 @@ def process_drawing_report(engineering_drawing_id: str, output_path: str) -> boo
         )
         eval_para = Paragraph(eval_text, eval_style)
         story.append(eval_para)
-        
+
         # 生成PDF
         doc.build(story)
         print(f"✓ 报告PDF生成成功: {temp_report_path}")
-        
+
         # 备份原始PDF
         if os.path.exists(output_path):
             backup_path = output_path.replace('.pdf', '_backup.pdf')
@@ -587,10 +620,10 @@ def process_drawing_report(engineering_drawing_id: str, output_path: str) -> boo
                 import shutil
                 shutil.copy2(output_path, backup_path)
                 print(f"✓ 已备份原始PDF: {backup_path}")
-        
+
         # 合并PDF
         success = merge_pdfs(output_path, temp_report_path, output_path)
-        
+
         if success:
             print()
             print("=" * 80)
@@ -599,7 +632,7 @@ def process_drawing_report(engineering_drawing_id: str, output_path: str) -> boo
             return True
         else:
             return False
-        
+
     except Exception as e:
         print(f"✗ PDF生成失败: {e}")
         import traceback

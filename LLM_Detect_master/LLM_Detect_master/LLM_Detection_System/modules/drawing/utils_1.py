@@ -20,42 +20,68 @@ def get_poppler_path():
 
     按优先级尝试以下路径：
     1. 系统 PATH 环境变量（如果 pdftoppm 可执行）
-    2. 项目目录下的 poppler 文件夹
-    3. 常见的 Windows 安装位置
+    2. 项目目录下的 poppler 文件夹（使用绝对路径定位）
+    3. 常见的安装位置（支持Windows和Linux）
 
     Returns:
         str or None: Poppler bin 目录路径，如果未找到则返回 None
     """
+    import platform
+    from pathlib import Path
+    
     # 1. 检查系统 PATH 中是否有 pdftoppm
     if shutil.which('pdftoppm'):
         print("✅ 在系统 PATH 中找到 Poppler")
         return None  # pdf2image 会自动使用 PATH 中的 poppler
 
-    # 2. 检查项目目录下的 poppler 文件夹
-    possible_paths = [
-        # 项目根目录下的 poppler
-        r"poppler\Library\bin",
-        r"poppler\bin",
-        # 常见的 Windows 安装位置
-        r"C:\Program Files\poppler\Library\bin",
-        r"C:\poppler\Library\bin",
-        r"C:\Program Files (x86)\poppler\Library\bin",
-        # 旧的硬编码路径（向后兼容）
-        r"poppler\poppler\poppler-25.07.0\Library\bin",
-    ]
+    # 2. 根据操作系统确定可执行文件名
+    is_windows = platform.system() == 'Windows'
+    pdftoppm_exe = 'pdftoppm.exe' if is_windows else 'pdftoppm'
+    
+    # 3. 计算项目根目录（使用当前文件位置计算，不依赖工作目录）
+    # 当前文件: LLM_Detection_System/modules/drawing/utils_1.py
+    # 项目根目录: LLM_Detect_master/LLM_Detect_master/
+    current_file = Path(__file__).resolve()
+    project_root = current_file.parent.parent.parent.parent  # 向上4级
+    
+    # 4. 构建可能的 Poppler 路径（优先使用基于项目根目录的绝对路径）
+    possible_paths = []
+    
+    if is_windows:
+        # Windows路径 - 优先使用项目根目录下的poppler
+        possible_paths = [
+            project_root / "poppler" / "Library" / "bin",  # 项目根目录的poppler（推荐）
+            Path("poppler") / "Library" / "bin",  # 当前工作目录
+            Path("..") / "poppler" / "Library" / "bin",  # 工作目录上一级
+            Path(r"C:\Program Files\poppler\Library\bin"),
+            Path(r"C:\poppler\Library\bin"),
+            Path(r"C:\Program Files (x86)\poppler\Library\bin"),
+        ]
+    else:
+        # Linux路径
+        possible_paths = [
+            project_root / "poppler" / "bin",
+            project_root / "poppler" / "Library" / "bin",
+            Path("/usr/bin"),
+            Path("/usr/local/bin"),
+            Path("poppler") / "bin",
+            Path("../poppler") / "bin",
+        ]
 
     for path in possible_paths:
-        # 检查路径是否存在且包含 pdftoppm.exe
-        pdftoppm_path = os.path.join(path, 'pdftoppm.exe')
-        if os.path.exists(pdftoppm_path):
-            print(f"✅ 找到 Poppler: {path}")
-            return path
+        # 检查路径是否存在且包含 pdftoppm
+        pdftoppm_path = path / pdftoppm_exe
+        if pdftoppm_path.exists():
+            # 转换为绝对路径字符串
+            abs_path = str(path.resolve())
+            print(f"✅ 找到 Poppler: {abs_path}")
+            return abs_path
 
-    print("⚠️  未找到 Poppler，PDF 预览将使用占位符")
-    print("💡 提示：请参考 'Poppler安装配置指南.md' 安装 Poppler")
+    print("⚠️  未找到 Poppler，将依赖系统PATH")
+    print("💡 提示：确保Poppler已安装并在系统PATH中，或配置到项目目录")
     return None
 
-def convert_pdf_to_image(pdf_path, page_num=0, max_width=800):
+def convert_pdf_to_image(pdf_path, page_num=0, max_width=None):
     """PDF文件转图片预览功能
 
     使用Poppler工具将PDF文件转换为PNG图片，用于前端预览显示
@@ -63,7 +89,7 @@ def convert_pdf_to_image(pdf_path, page_num=0, max_width=800):
     Args:
         pdf_path (str): PDF文件路径
         page_num (int): 要转换的页码，默认为第0页
-        max_width (int): 图片最大宽度，默认800像素
+        max_width (int): 图片最大宽度，None表示不限制（推荐）
 
     Returns:
         str: base64编码的图片数据URL，失败时返回None
@@ -72,14 +98,14 @@ def convert_pdf_to_image(pdf_path, page_num=0, max_width=800):
         # 自动检测 Poppler 路径
         poppler_path = get_poppler_path()
 
-        # 使用poppler工具转换PDF为图片
+        # 使用poppler工具转换PDF为图片（使用高DPI获得清晰图片）
         if poppler_path:
             # 使用指定路径
             images = convert_from_path(
                 pdf_path,
                 first_page=page_num+1,  # 指定页码（poppler从1开始计数）
                 last_page=page_num+1,
-                dpi=150,  # 图片清晰度设置
+                dpi=300,  # 使用300 DPI（印刷级别）获得高清图片
                 poppler_path=poppler_path
             )
         else:
@@ -88,13 +114,13 @@ def convert_pdf_to_image(pdf_path, page_num=0, max_width=800):
                 pdf_path,
                 first_page=page_num+1,
                 last_page=page_num+1,
-                dpi=150
+                dpi=300
             )
 
         if images:
             image = images[0]
-            # 限制图片宽度，保持比例
-            if image.width > max_width:
+            # 只在指定max_width时才限制图片宽度
+            if max_width and image.width > max_width:
                 ratio = max_width / image.width
                 new_height = int(image.height * ratio)
                 image = image.resize((max_width, new_height), Image.Resampling.LANCZOS)

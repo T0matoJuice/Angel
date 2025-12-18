@@ -678,7 +678,7 @@
                    const a = document.createElement('a');
                    a.style.display = 'none';
                    a.href = url;
-                   a.download = `制图检测报告_${filename || 'report'}_${new Date().toISOString().slice(0,10)}.txt`;
+                   a.download = `检测报告_${filename || 'report'}`;
                    document.body.appendChild(a);
                    a.click();
                     window.URL.revokeObjectURL(url);
