@@ -291,7 +291,7 @@
                 <span class="description">上传您的机械制图文件，进行智能规范检测分析</span>
             </a>
 
-            <a href="/drawing/textbook" class="option-btn btn-textbook" onclick="showLoading(this)">
+            <a href="/drawing/textbook" class="option-btn btn-textbook" target="_blank" rel="noopener noreferrer">
                 <span class="icon">📚</span>
                 <span class="text">制图规范</span>
                 <span class="description">查看机械制图教材，学习标准制图规范要求</span>
@@ -382,9 +382,9 @@
         });
 
         // 阻止链接的默认行为，使用JavaScript控制跳转
-        document.querySelectorAll('.option-btn').forEach(btn => {
+        document.querySelectorAll('.option-btn:not([target="_blank"])').forEach(btn => {
             btn.addEventListener('click', function(e) {
-                e.preventDefault();
+                 e.preventDefault();
 
                 // 检查按钮是否已经在加载状态
                 const textSpan = this.querySelector('.text');
