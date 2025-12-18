@@ -137,7 +137,7 @@ def inspect_drawing_api(drawing_file_path):
                 drawing_file_path, 
                 first_page=1, 
                 last_page=1, 
-                dpi=300,
+                dpi=200,
                 poppler_path=poppler_path
             )
         else:
@@ -146,7 +146,7 @@ def inspect_drawing_api(drawing_file_path):
                 drawing_file_path, 
                 first_page=1, 
                 last_page=1, 
-                dpi=300
+                dpi=200
             )
         
         if not images:

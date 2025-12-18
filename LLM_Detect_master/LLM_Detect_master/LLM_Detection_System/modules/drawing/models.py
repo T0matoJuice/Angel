@@ -37,14 +37,15 @@ class DrawingData(db.Model):
     detailed_report = db.Column(db.Text, nullable=True)  # 详细报告（text类型）
     checker_name = db.Column(db.String(255), nullable=True)  # 检入者姓名
     version = db.Column(db.String(255), nullable=True)  # 版本号
+    engineering_drawing_type = db.Column(db.String(255), nullable=True)  # 图纸类型
     status = db.Column(db.String(50), nullable=True, default='pending')  # 检测状态
     error_message = db.Column(db.Text, nullable=True)  # 错误信息
     completed_at = db.Column(db.String(255), nullable=True)  # 检测完成时间
     source = db.Column(db.String(50), nullable=True, default='Web')  # 数据来源
-    
+
     def __repr__(self):
         return f'<DrawingData {self.engineering_drawing_id}>'
-    
+
     def to_dict(self):
         """将模型转换为字典格式（用于API返回）
 
@@ -52,7 +53,7 @@ class DrawingData(db.Model):
             dict: 包含所有字段的字典
         """
         return {
-            'id': self.engineering_drawing_id,  # 前端使用 engineering_drawing_id 作为 id
+            'id': self.id,  # 前端使用
             'engineering_drawing_id': self.engineering_drawing_id,
             'account': self.account,
             'original_filename': self.original_filename,
@@ -64,9 +65,106 @@ class DrawingData(db.Model):
             'timestamp': self.created_at,  # 兼容旧的字段名
             'checker_name': self.checker_name,  # 检入者姓名
             'version': self.version,  # 版本号
+            'engineering_drawing_type': self.engineering_drawing_type,  # 图纸类型
             'status': self.status,  # 检测状态
             'error_message': self.error_message,  # 错误信息
             'completed_at': self.completed_at,  # 检测完成时间
             'source': self.source  # 数据来源
         }
+
+
+class DrawingDataset(db.Model):
+    """图纸数据集模型 - 映射到 MySQL angel.drawing_dataset 表
+
+    用于存储图纸检测的详细项目数据，包含12个检测项目的名称、结果和描述。
+
+    Attributes:
+        id: 主键，自增
+        engineering_drawing_id: 图纸文档编号
+        check_time: 检测时间
+        flowpath_id: 流程路径ID
+        project_1~12: 12个检测项目名称
+        result_1~12: 12个检测结果
+        describe_1~12: 12个检测描述
+    """
+    __tablename__ = 'drawing_dataset'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    engineering_drawing_id = db.Column(db.String(255), nullable=True)
+    check_time = db.Column(db.String(255), nullable=True)
+    flowpath_id = db.Column(db.String(255), nullable=True)
+
+    # 12个检测项目
+    project_1 = db.Column(db.String(255), nullable=True)
+    result_1 = db.Column(db.String(255), nullable=True)
+    describe_1 = db.Column(db.String(255), nullable=True)
+
+    project_2 = db.Column(db.String(255), nullable=True)
+    result_2 = db.Column(db.String(255), nullable=True)
+    describe_2 = db.Column(db.String(255), nullable=True)
+
+    project_3 = db.Column(db.String(255), nullable=True)
+    result_3 = db.Column(db.String(255), nullable=True)
+    describe_3 = db.Column(db.String(255), nullable=True)
+
+    project_4 = db.Column(db.String(255), nullable=True)
+    result_4 = db.Column(db.String(255), nullable=True)
+    describe_4 = db.Column(db.String(255), nullable=True)
+
+    project_5 = db.Column(db.String(255), nullable=True)
+    result_5 = db.Column(db.String(255), nullable=True)
+    describe_5 = db.Column(db.String(255), nullable=True)
+
+    project_6 = db.Column(db.String(255), nullable=True)
+    result_6 = db.Column(db.String(255), nullable=True)
+    describe_6 = db.Column(db.String(255), nullable=True)
+
+    project_7 = db.Column(db.String(255), nullable=True)
+    result_7 = db.Column(db.String(255), nullable=True)
+    describe_7 = db.Column(db.String(255), nullable=True)
+
+    project_8 = db.Column(db.String(255), nullable=True)
+    result_8 = db.Column(db.String(255), nullable=True)
+    describe_8 = db.Column(db.String(255), nullable=True)
+
+    project_9 = db.Column(db.String(255), nullable=True)
+    result_9 = db.Column(db.String(255), nullable=True)
+    describe_9 = db.Column(db.String(255), nullable=True)
+
+    project_10 = db.Column(db.String(255), nullable=True)
+    result_10 = db.Column(db.String(255), nullable=True)
+    describe_10 = db.Column(db.String(255), nullable=True)
+
+    project_11 = db.Column(db.String(255), nullable=True)
+    result_11 = db.Column(db.String(255), nullable=True)
+    describe_11 = db.Column(db.String(255), nullable=True)
+
+    project_12 = db.Column(db.String(255), nullable=True)
+    result_12 = db.Column(db.String(255), nullable=True)
+    describe_12 = db.Column(db.String(255), nullable=True)
+
+    def __repr__(self):
+        return f'<DrawingDataset {self.id} - {self.engineering_drawing_id}>'
+
+    def to_dict(self):
+        """将模型转换为字典格式（用于API返回）
+
+        Returns:
+            dict: 包含所有字段的字典
+        """
+        result = {
+            'id': self.id,
+            'engineering_drawing_id': self.engineering_drawing_id,
+            'check_time': self.check_time,
+            'flowpath_id': self.flowpath_id,
+        }
+
+        # 添加12个检测项目
+        for i in range(1, 13):
+            result[f'project_{i}'] = getattr(self, f'project_{i}')
+            result[f'result_{i}'] = getattr(self, f'result_{i}')
+            result[f'describe_{i}'] = getattr(self, f'describe_{i}')
+
+        return result
+
 

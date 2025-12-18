@@ -6,8 +6,8 @@
 
 import os
 import time
-import tempfile
 import glob
+import tempfile
 from flask import Blueprint, request, jsonify, render_template, send_file, current_app
 from flask_login import login_required, current_user
 from modules.drawing.utils import allowed_file, convert_pdf_to_image, create_placeholder_image
@@ -19,11 +19,13 @@ from modules.auth import db
 # 创建制图检测蓝图
 drawing_bp = Blueprint('drawing', __name__)
 
+
 @drawing_bp.route('/')
 @login_required
 def drawing_index():
     """制图检测系统主页 - 显示制图检测功能介绍和操作入口"""
     return render_template('drawing_index.html')
+
 
 @drawing_bp.route('/detection')
 @login_required
@@ -56,11 +58,13 @@ def drawing_textbook():
 
         return jsonify({'error': '未找到包含[机械制图教材]的PDF文件'}), 404
 
+
 @drawing_bp.route('/history')
 @login_required
 def drawing_history():
     """制图检测历史记录页面 - 显示用户的制图检测历史记录和详细结果"""
     return render_template('drawing_history.html')
+
 
 @drawing_bp.route('/api/history')
 @login_required
@@ -99,6 +103,7 @@ def drawing_get_history():
     except Exception as e:
         return jsonify({'error': f'获取历史记录失败: {str(e)}'}), 500
 
+
 @drawing_bp.route('/api/history/<record_id>')
 @login_required
 def drawing_get_history_detail(record_id):
@@ -111,11 +116,9 @@ def drawing_get_history_detail(record_id):
         JSON: 包含历史记录详细信息的响应数据
     """
     try:
-        # 从数据库查询指定 engineering_drawing_id 的记录
+        # 从数据库查询指定 ID 的记录（使用自增ID）
         # 移除了 account 过滤条件，允许查看所有记录的详情
-        record = DrawingData.query.filter_by(
-            engineering_drawing_id=record_id
-        ).first()
+        record = DrawingData.query.filter_by(id=int(record_id)).first()
 
         if not record:
             return jsonify({'error': '历史记录不存在'}), 404
@@ -140,6 +143,7 @@ def drawing_get_history_detail(record_id):
     except Exception as e:
         return jsonify({'error': f'获取历史记录详情失败: {str(e)}'}), 500
 
+
 @drawing_bp.route('/upload', methods=['POST'])
 @login_required
 def drawing_upload_file():
@@ -162,15 +166,21 @@ def drawing_upload_file():
     if not allowed_file(file.filename):
         return jsonify({'error': '只支持PDF文件格式'}), 400
 
-    # 获取检入者和版本信息
+    # 获取图纸文档编号、检入者、版本和图纸类型信息
+    engineering_drawing_id = request.form.get('engineering_drawing_id', '').strip()
     checker_name = request.form.get('checker_name', '').strip()
     version = request.form.get('version', '').strip()
+    drawing_type = request.form.get('drawing_type', '').strip()
 
     # 验证必填字段
+    if not engineering_drawing_id:
+        return jsonify({'error': '图纸文档编号不能为空'}), 400
     if not checker_name:
         return jsonify({'error': '检入者不能为空'}), 400
     if not version:
         return jsonify({'error': '版本不能为空'}), 400
+    if not drawing_type:
+        return jsonify({'error': '图纸类型不能为空'}), 400
 
     try:
         # 1. 保存文件到uploads目录
@@ -179,8 +189,8 @@ def drawing_upload_file():
         filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
 
-        # 2. 生成唯一的检测记录ID
-        engineering_drawing_id = str(timestamp)
+        # 2. 使用用户输入的图纸文档编号作为检测记录ID（已从表单获取）
+        # engineering_drawing_id 已在上面定义
 
         # 3. 立即创建数据库记录（状态：pending）
         drawing_record = DrawingData(
@@ -190,6 +200,7 @@ def drawing_upload_file():
             file_path=filepath,
             checker_name=checker_name,
             version=version,
+            engineering_drawing_type=drawing_type,
             created_at=time.strftime('%Y-%m-%d %H:%M:%S'),
             status='pending',  # 初始状态：排队中
             conclusion='',  # 检测结论暂时为空
@@ -200,12 +211,15 @@ def drawing_upload_file():
         db.session.add(drawing_record)
         db.session.commit()
 
-        print(f"✅ 数据库记录已创建: {engineering_drawing_id}")
+        # 获取数据库自增ID
+        db_record_id = drawing_record.id
+
+        print(f"✅ 数据库记录已创建: ID={db_record_id}, engineering_drawing_id={engineering_drawing_id}")
         print(f"   文件: {file.filename}, 检入者: {checker_name}, 版本: {version}")
 
-        # 4. 将检测任务加入队列
+        # 4. 将检测任务加入队列（使用数据库ID）
         queue_manager = get_queue_manager()
-        queue_added = queue_manager.add_task(engineering_drawing_id, filepath)
+        queue_added = queue_manager.add_task(str(db_record_id), filepath)
 
         if not queue_added:
             return jsonify({
@@ -215,7 +229,8 @@ def drawing_upload_file():
         # 5. 返回成功响应
         return jsonify({
             'success': True,
-            'record_id': engineering_drawing_id,  # 返回记录ID供前端轮询
+            'record_id': str(db_record_id),  # 返回数据库ID供前端轮询
+            'engineering_drawing_id': engineering_drawing_id,  # 同时返回图纸编号
             'filename': file.filename,
             'message': 'PDF文件上传成功，检测任务已加入队列',
             'preview_url': f'/drawing/preview/{filename}',
@@ -228,6 +243,7 @@ def drawing_upload_file():
         db.session.rollback()
         print(f"❌ 上传失败: {str(e)}")
         return jsonify({'error': f'上传失败: {str(e)}'}), 500
+
 
 @drawing_bp.route('/inspect', methods=['POST'])
 @login_required
@@ -249,12 +265,13 @@ def drawing_get_status(record_id):
     """查询检测任务状态
 
     Args:
-        record_id: 检测记录ID（engineering_drawing_id）
+        record_id: 检测记录ID（数据库自增ID）
 
     Returns:
         JSON: {
             "success": true,
-            "record_id": "1234567890",
+            "record_id": "123",
+            "engineering_drawing_id": "DWG-001",
             "status": "pending|processing|completed|failed",
             "conclusion": "符合",  // 仅当 status=completed 时有值
             "detailed_report": "...",  // 仅当 status=completed 时有值
@@ -263,10 +280,8 @@ def drawing_get_status(record_id):
         }
     """
     try:
-        # 从数据库查询记录
-        record = DrawingData.query.filter_by(
-            engineering_drawing_id=record_id
-        ).first()
+        # 从数据库查询记录（使用自增ID）
+        record = DrawingData.query.filter_by(id=int(record_id)).first()
 
         if not record:
             return jsonify({'error': '记录不存在'}), 404
@@ -277,7 +292,8 @@ def drawing_get_status(record_id):
         # 构建响应数据
         response = {
             'success': True,
-            'record_id': record_id,
+            'record_id': str(record.id),  # 返回数据库ID
+            'engineering_drawing_id': record.engineering_drawing_id,  # 同时返回图纸编号
             'status': record.status or 'pending',
             'created_at': record.created_at
         }
@@ -300,6 +316,7 @@ def drawing_get_status(record_id):
 
     except Exception as e:
         return jsonify({'error': f'查询状态失败: {str(e)}'}), 500
+
 
 @drawing_bp.route('/api/queue/info', methods=['GET'])
 @login_required
@@ -356,80 +373,65 @@ def drawing_preview_pdf(filename):
             'real_preview': False
         })
 
+
 @drawing_bp.route('/download-report/<record_id>', methods=['GET'])
 @login_required
 def drawing_download_report(record_id):
-    """根据记录ID生成并下载制图检测报告
+    """根据记录ID下载制图检测报告PDF
 
-    从数据库查询指定的检测记录，生成TXT格式的检测报告文件供用户下载
+    从数据库查询指定的检测记录，返回生成的PDF报告文件
 
     Args:
-        record_id (str): 检测记录的唯一标识符（engineering_drawing_id）
+        record_id (str): 检测记录的唯一标识符（数据库自增ID）
 
     Returns:
-        Response: 包含报告文件的下载响应，或错误信息
+        Response: 包含PDF报告文件的下载响应，或错误信息
     """
     try:
-        # 从数据库查询记录
-        record = DrawingData.query.filter_by(
-            engineering_drawing_id=record_id
-        ).first()
+        print(f"📥 下载报告请求: record_id={record_id}")
+
+        # 从数据库查询记录（使用自增ID）
+        record = DrawingData.query.filter_by(id=int(record_id)).first()
 
         if not record:
+            print(f"❌ 记录不存在: id={record_id}")
             return jsonify({'error': '检测记录不存在'}), 404
 
-        # 构建报告内容
-        report_lines = [
-            "机械制图规范检测报告",
-            "=" * 50,
-            "",
-            "基本信息:",
-            "-" * 30,
-            f"文件名称: {record.original_filename or '未知'}",
-            f"传入图纸用户: {record.account or '未知'}",
-        ]
+        print(f"✅ 找到记录: {record.original_filename}")
+        print(f"   file_path: {record.file_path}")
 
-        # 添加检入者信息（如果有）
-        if record.checker_name:
-            report_lines.append(f"检入者: {record.checker_name}")
+        # 检查PDF文件是否存在
+        pdf_path = record.file_path
 
-        # 添加版本信息（如果有）
-        if record.version:
-            report_lines.append(f"版本号: {record.version}")
+        if not pdf_path:
+            print(f"❌ file_path为空")
+            return jsonify({'error': 'PDF文件路径为空'}), 404
 
-        report_lines.extend([
-            f"检测时间: {record.created_at or time.strftime('%Y-%m-%d %H:%M:%S')}",
-            f"检测结论: {record.conclusion or '未知'}",
-            "",
-            "详细分析:",
-            "-" * 30,
-            record.detailed_report or '无详细报告内容',
-            "",
-            "=" * 50,
-            f"报告生成时间: {time.strftime('%Y-%m-%d %H:%M:%S')}",
-            "系统版本: 大模型智能检测系统 v1.0",
-        ])
+        if not os.path.exists(pdf_path):
+            print(f"❌ PDF文件不存在: {pdf_path}")
+            return jsonify({'error': f'PDF文件不存在: {pdf_path}'}), 404
 
-        report_content = "\n".join(report_lines)
-
-        # 创建临时文件
-        temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8')
-        temp_file.write(report_content)
-        temp_file.close()
+        print(f"✅ PDF文件存在: {pdf_path}")
 
         # 生成下载文件名
-        safe_filename = record.original_filename or 'unknown'
-        # 移除文件扩展名
-        if '.' in safe_filename:
-            safe_filename = safe_filename.rsplit('.', 1)[0]
-        download_filename = f"制图检测报告_{safe_filename}_{time.strftime('%Y%m%d')}.txt"
+        safe_filename = record.original_filename or 'drawing_report'
+        # 确保文件名以.pdf结尾
+        if not safe_filename.lower().endswith('.pdf'):
+            safe_filename = safe_filename.rsplit('.', 1)[0] + '.pdf' if '.' in safe_filename else safe_filename + '.pdf'
+
+        download_filename = f"检测报告_{safe_filename}"
+        print(f"📄 下载文件名: {download_filename}")
 
         return send_file(
-            temp_file.name,
+            pdf_path,
             as_attachment=True,
             download_name=download_filename,
-            mimetype='text/plain'
+            mimetype='application/pdf'
         )
 
     except Exception as e:
-        return jsonify({'error': f'生成报告失败: {str(e)}'}), 500
+        print(f"❌ 下载报告失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'下载报告失败: {str(e)}'}), 500
+
