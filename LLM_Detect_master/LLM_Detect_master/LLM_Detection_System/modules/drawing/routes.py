@@ -435,3 +435,264 @@ def drawing_download_report(record_id):
         traceback.print_exc()
         return jsonify({'error': f'下载报告失败: {str(e)}'}), 500
 
+
+@drawing_bp.route('/charts')
+@login_required
+def drawing_charts():
+    """制图检测统计报表页面 - 显示AI检测问题汇总统计"""
+    return render_template('drawing_chats.html')
+
+
+@drawing_bp.route('/api/charts/statistics', methods=['GET'])
+@login_required
+def drawing_get_chart_statistics():
+    """获取制图检测统计数据API
+    
+    支持日期范围、创建人、物料类型筛选
+    返回统计信息和问题明细列表
+    
+    Query Parameters:
+        start_date: 开始日期 (YYYY-MM-DD)
+        end_date: 结束日期 (YYYY-MM-DD)
+        creator: 创建人筛选
+        material_type: 物料类型筛选
+    
+    Returns:
+        JSON: {
+            'success': True,
+            'statistics': {
+                'date_range': '2025-06 至 2025-10',
+                'total_drawings': 1000,
+                'total_issues': 400,
+                'issue_types': {
+                    '尺寸错误': 50,
+                    '版本错误': 50,
+                    ...
+                },
+                'monthly_data': {
+                    '2025-06': {'尺寸错误': 8, '版本错误': 7, ...},
+                    ...
+                }
+            },
+            'details': [
+                {
+                    'check_date': '2025-10-30',
+                    'issue_type': '尺寸错误',
+                    'engineer': '张三',
+                    'material_name': '显示面板',
+                    'material_type': '塑胶件',
+                    'drawing_id': 'J3506-ROC90-01'
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        from datetime import datetime, timedelta
+        from sqlalchemy import text
+        
+        # 获取筛选参数 - 默认查询最近6个月的数据
+        today = datetime.now()
+        six_months_ago = today - timedelta(days=180)
+        
+        # 如果用户没有指定日期,使用最近6个月
+        start_date = request.args.get('start_date', six_months_ago.strftime('%Y-%m-%d'))
+        end_date = request.args.get('end_date', today.strftime('%Y-%m-%d'))
+        creator = request.args.get('creator', '')
+        material_type = request.args.get('material_type', '')
+        
+        print(f"📊 查询统计数据: start_date={start_date}, end_date={end_date}")
+        
+        # 查询drawing_data表获取基础数据
+        query = DrawingData.query.filter(DrawingData.status == 'completed')
+        
+        # 应用日期筛选
+        if start_date:
+            query = query.filter(DrawingData.created_at >= start_date)
+        if end_date:
+            query = query.filter(DrawingData.created_at <= end_date + ' 23:59:59')
+        
+        # 应用创建人筛选
+        if creator:
+            query = query.filter(DrawingData.checker_name == creator)
+        
+        # 应用物料类型筛选（通过图纸类型字段）
+        if material_type:
+            query = query.filter(DrawingData.engineering_drawing_type == material_type)
+        
+        records = query.all()
+        
+        print(f"✅ 查询到 {len(records)} 条记录")
+        
+        # 统计数据
+        total_drawings = len(records)
+        
+        # 统计符合/不符合 - 从drawing_data.conclusion字段
+        # conclusion字段的值: "符合" 或 "不符合"
+        non_compliant_count = sum(1 for r in records if r.conclusion and '不符合' in r.conclusion)
+        compliant_count = total_drawings - non_compliant_count
+        
+        # 问题类型统计 - 从drawing_detection表的对应字段
+        # 映射关系:
+        # 尺寸错误 -> result_1
+        # 版本错误 -> result_11  
+        # 图标错误 -> result_7
+        # 缺少单一材质重量 -> result_12
+        # 缺少重点尺寸 -> result_3
+        # 缺少未注公差 -> result_6
+        
+        issue_types_count = {
+            '尺寸错误': 0,
+            '版本错误': 0,
+            '图标错误': 0,
+            '缺少单一材质重量': 0,
+            '缺少重点尺寸': 0,
+            '缺少未注公差': 0
+        }
+        
+        # 月度数据统计
+        monthly_data = {}
+        
+        # 问题明细列表
+        details = []
+        
+        # 遍历记录，从drawing_detection表获取详细检测项目
+        for record in records:
+            # 使用SQL直接查询drawing_detection表
+            sql = text("""
+                SELECT result_1, result_3, result_6, result_7, result_11, result_12
+                FROM drawing_detection
+                WHERE engineering_drawing_id = :drawing_id
+            """)
+            detection_records = db.session.execute(sql, {'drawing_id': record.engineering_drawing_id}).fetchall()
+            
+            # 提取月份
+            if record.created_at:
+                try:
+                    month = record.created_at[:7]  # YYYY-MM
+                    if month not in monthly_data:
+                        monthly_data[month] = {k: 0 for k in issue_types_count.keys()}
+                except:
+                    month = None
+            else:
+                month = None
+            
+            # 分析检测结果，统计问题类型
+            for detection in detection_records:
+                result_1, result_3, result_6, result_7, result_11, result_12 = detection
+                
+                # 尺寸错误 - result_1
+                if result_1 and '不符合' in result_1:
+                    issue_types_count['尺寸错误'] += 1
+                    if month:
+                        monthly_data[month]['尺寸错误'] += 1
+                    details.append({
+                        'check_date': record.created_at[:10] if record.created_at else '',
+                        'issue_type': '尺寸错误',
+                        'engineer': record.checker_name or '',
+                        'material_name': record.original_filename or '',
+                        'material_type': record.engineering_drawing_type or '',
+                        'drawing_id': record.engineering_drawing_id or ''
+                    })
+                
+                # 版本错误 - result_11
+                if result_11 and '不符合' in result_11:
+                    issue_types_count['版本错误'] += 1
+                    if month:
+                        monthly_data[month]['版本错误'] += 1
+                    details.append({
+                        'check_date': record.created_at[:10] if record.created_at else '',
+                        'issue_type': '版本错误',
+                        'engineer': record.checker_name or '',
+                        'material_name': record.original_filename or '',
+                        'material_type': record.engineering_drawing_type or '',
+                        'drawing_id': record.engineering_drawing_id or ''
+                    })
+                
+                # 图标错误 - result_7
+                if result_7 and '不符合' in result_7:
+                    issue_types_count['图标错误'] += 1
+                    if month:
+                        monthly_data[month]['图标错误'] += 1
+                    details.append({
+                        'check_date': record.created_at[:10] if record.created_at else '',
+                        'issue_type': '图标错误',
+                        'engineer': record.checker_name or '',
+                        'material_name': record.original_filename or '',
+                        'material_type': record.engineering_drawing_type or '',
+                        'drawing_id': record.engineering_drawing_id or ''
+                    })
+                
+                # 缺少单一材质重量 - result_12
+                if result_12 and '不符合' in result_12:
+                    issue_types_count['缺少单一材质重量'] += 1
+                    if month:
+                        monthly_data[month]['缺少单一材质重量'] += 1
+                    details.append({
+                        'check_date': record.created_at[:10] if record.created_at else '',
+                        'issue_type': '缺少单一材质重量',
+                        'engineer': record.checker_name or '',
+                        'material_name': record.original_filename or '',
+                        'material_type': record.engineering_drawing_type or '',
+                        'drawing_id': record.engineering_drawing_id or ''
+                    })
+                
+                # 缺少重点尺寸 - result_3
+                if result_3 and '不符合' in result_3:
+                    issue_types_count['缺少重点尺寸'] += 1
+                    if month:
+                        monthly_data[month]['缺少重点尺寸'] += 1
+                    details.append({
+                        'check_date': record.created_at[:10] if record.created_at else '',
+                        'issue_type': '缺少重点尺寸',
+                        'engineer': record.checker_name or '',
+                        'material_name': record.original_filename or '',
+                        'material_type': record.engineering_drawing_type or '',
+                        'drawing_id': record.engineering_drawing_id or ''
+                    })
+                
+                # 缺少未注公差 - result_6
+                if result_6 and '不符合' in result_6:
+                    issue_types_count['缺少未注公差'] += 1
+                    if month:
+                        monthly_data[month]['缺少未注公差'] += 1
+                    details.append({
+                        'check_date': record.created_at[:10] if record.created_at else '',
+                        'issue_type': '缺少未注公差',
+                        'engineer': record.checker_name or '',
+                        'material_name': record.original_filename or '',
+                        'material_type': record.engineering_drawing_type or '',
+                        'drawing_id': record.engineering_drawing_id or ''
+                    })
+        
+        # 计算总问题数
+        total_issues = sum(issue_types_count.values())
+        
+        # 格式化日期范围
+        date_range = f"{start_date[:7]} 至 {end_date[:7]}"
+        
+        print(f"📈 统计结果: 总图纸={total_drawings}, 符合={compliant_count}, 不符合={non_compliant_count}, 总问题={total_issues}")
+        print(f"   问题分布: {issue_types_count}")
+        
+        return jsonify({
+            'success': True,
+            'statistics': {
+                'date_range': date_range,
+                'total_drawings': total_drawings,
+                'compliant_count': compliant_count,
+                'non_compliant_count': non_compliant_count,
+                'total_issues': total_issues,
+                'issue_types': issue_types_count,
+                'monthly_data': monthly_data
+            },
+            'details': details
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"❌ 获取统计数据失败: {str(e)}")
+        traceback.print_exc()
+        return jsonify({'error': f'获取统计数据失败: {str(e)}'}), 500
+
+
+
