@@ -35,9 +35,12 @@ class Processor:
         # self.base_url = os.getenv('EXCEL_BASE_URL', 'http://10.2.32.163:8000/v1')
         
         # Kimi官方API配置（Moonshot）
-        self.api_key = os.getenv('MOONSHOT_API_KEY', 'sk-S7PzDUN4aPRl8sr5zxqNe9umeTnPj9AdirkD9wKTN9IluR2i')
-        self.model = os.getenv('MOONSHOT_MODEL_0711', 'kimi-k2-0905-preview')  # 使用K2-0711模型
-        self.base_url = os.getenv('MOONSHOT_BASE_URL', 'https://api.moonshot.cn/v1')
+        # self.api_key = os.getenv('MOONSHOT_API_KEY', 'sk-IJmn6jASTNLPTyGtP3ShBJj9YjUc8EHFereXUZBi265sHiQG')
+        # self.model = os.getenv('MOONSHOT_MODEL_0711', 'kimi-k2-0905-preview')  # 使用K2-0711模型
+        # self.base_url = os.getenv('MOONSHOT_BASE_URL', 'https://api.moonshot.cn/v1')
+        self.api_key = 'sk-IJmn6jASTNLPTyGtP3ShBJj9YjUc8EHFereXUZBi265sHiQG'
+        self.model = 'kimi-k2-0711-preview'  # 或者你想用的模型名称
+        self.base_url = 'https://api.moonshot.cn/v1'
 
         if not self.api_key:
             raise ValueError("未找到MOONSHOT_API_KEY环境变量")
