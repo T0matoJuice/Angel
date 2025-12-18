@@ -821,7 +821,7 @@ def api_query_by_drawing_and_version():
 
             # 12个检测点的名称（按固定顺序）
             point_names = [
-                '未注公差表检查',
+                '尺寸公差检测',
                 '公差精确度检测',
                 '关键尺寸识别',
                 '技术要求检测',
@@ -832,7 +832,7 @@ def api_query_by_drawing_and_version():
                 '中文名称检查',
                 '材料信息检查',
                 '版本号检查',
-                '图号检查'
+                '重量信息检查'
             ]
 
             # 将12个检测点的数据整理成数组（使用OrderedDict保持字段顺序）
