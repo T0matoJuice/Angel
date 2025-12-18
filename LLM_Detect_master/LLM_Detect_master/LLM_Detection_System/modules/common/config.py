@@ -61,7 +61,8 @@ def init_app_config(app):
     DB_HOST = os.getenv('DB_HOST', 'localhost')
     DB_PORT = os.getenv('DB_PORT', '3306')
     DB_NAME = os.getenv('DB_NAME', 'test_db')
-
+    # 调试打印：检查到底读到了什么 (启动后看 docker logs aje1)
+    print(f"DEBUG: Connecting to {DB_USER}@{DB_HOST}/{DB_NAME}")
     # 格式：mysql+pymysql://用户名:密码@主机:端口/数据库名?charset=utf8mb4
     app.config['SQLALCHEMY_DATABASE_URI'] = (
         f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4'
