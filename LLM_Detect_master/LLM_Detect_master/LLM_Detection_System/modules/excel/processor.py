@@ -833,17 +833,181 @@ CSV格式规范：
             final_row_count = len([line for line in final_lines if line.strip()]) - 1  # 减去表头
             print(f"最终输出行数: {final_row_count} 行")
             
-            # 验证输出完整性
-            if final_row_count < test_row_count:
+            # 验证输出完整性并自动重试缺失记录
+            max_retries = 3
+            retry_count = 0
+            accumulated_usage = resp2.usage
+            
+            while final_row_count < test_row_count and retry_count < max_retries:
                 missing_count = test_row_count - final_row_count
                 print(f"⚠️  警告: 输出不完整！缺少 {missing_count} 条记录 ({final_row_count}/{test_row_count})")
+                print(f"🔄 开始第 {retry_count + 1} 次重试，仅处理缺失的记录...")
+                
+                # 解析已有结果，找出哪些工单号已经判断
+                import csv
+                from io import StringIO
+                
+                try:
+                    existing_df = pd.read_csv(StringIO(quality_result), dtype=str)
+                    existing_order_numbers = set(existing_df['工单单号'].astype(str).str.strip())
+                    print(f"  已判断的工单号数量: {len(existing_order_numbers)}")
+                except Exception as e:
+                    print(f"  ⚠️  解析已有结果失败: {str(e)}，将重试全部数据")
+                    existing_order_numbers = set()
+                
+                # 找出缺失的工单号
+                original_df = pd.read_csv(StringIO(test_content), dtype=str)
+                all_order_numbers = original_df['工单单号'].astype(str).str.strip().tolist()
+                missing_order_numbers = [num for num in all_order_numbers if num not in existing_order_numbers]
+                
+                print(f"  缺失的工单号数量: {len(missing_order_numbers)}")
+                if len(missing_order_numbers) <= 10:
+                    print(f"  缺失的工单号: {', '.join(missing_order_numbers)}")
+                else:
+                    print(f"  缺失的工单号（前10个）: {', '.join(missing_order_numbers[:10])}...")
+                
+                # 构建仅包含缺失记录的数据
+                missing_df = original_df[original_df['工单单号'].astype(str).str.strip().isin(missing_order_numbers)]
+                missing_csv = missing_df.to_csv(index=False)
+                
+                # 构建重试提示词
+                retry_prompt = f"""
+根据刚才学习的规则，对下面这些**缺失的记录**进行工单性质判断。
+
+缺失记录数据（CSV格式）：
+{missing_csv}
+
+**重要说明：**
+1. 这是第 {retry_count + 1} 次重试
+2. 这些记录在之前的判断中被遗漏了
+3. 必须对所有 {len(missing_order_numbers)} 条记录都进行判断
+4. 严格按照之前学习的规则进行判断
+
+判断流程（必须严格执行）：
+
+**第一步：检查硬性规则（第一层）**
+对每条记录，先检查是否命中以下硬性规则：
+
+A类（质量工单）：
+1. 新机黄金法则：购机/安装日期≤30天 + 换机/退机/退货
+2. 产品鉴定政策：服务项目包含"产品鉴定" + 换机/退机/退货
+3. 核心部件更换：旧件/新件在核心部件库中
+4. 滤芯质量缺陷：滤芯 + 漏碳/黑点/黑渣/碳粉
+5. 保外转保内：保外转保内 + 滤芯
+6. 噪音换机：噪音/分贝 + 换机/退机/退货
+
+B类（非质量工单）：
+1. 外部加装：服务项目包含"加装"
+2. 安全维护：服务项目包含"安全维护"
+3. 用户/环境责任：处理方案包含用户/客户/台盆/厨房/下水/第三方/水压/水质
+
+**如果命中硬性规则，立即判定，不再继续！**
+
+**第二步：应用学习的模式（第二层）**
+如果第一步未命中，则应用你从训练数据中学到的规则。
+
+**第三步：默认策略**
+如果信息严重不足，默认为"非质量工单"
+
+输出格式要求：
+- 必须包含所有19个字段：工单单号,工单性质,判定依据,保内保外,批次入库日期,安装日期,购机日期,产品名称,开发主体,故障部位名称,故障组,故障类别,服务项目或故障现象,维修方式,旧件名称,新件名称,来电内容,现场诊断故障现象,处理方案简述或备注
+- **工单性质**：只能是"质量工单"或"非质量工单"
+- **判定依据**：必须明确说明判断理由
+- 每行必须严格包含19个字段
+- 仅输出CSV格式数据，不要添加任何解释
+
+🚨 **强制要求（必须遵守）：**
+1. **必须输出所有{len(missing_order_numbers)}条记录，一条都不能少！**
+2. **第一行必须是表头行（列名）**
+3. **从第二行开始是数据行，共{len(missing_order_numbers)}行数据**
+4. **总输出行数 = 1（表头）+ {len(missing_order_numbers)}（数据）= {len(missing_order_numbers) + 1}行**
+
+请开始判断（共{len(missing_order_numbers)}条缺失记录）：
+"""
+                
+                # 调用AI模型重试
+                retry_messages = messages.copy()
+                retry_messages.append({"role": "user", "content": retry_prompt})
+                
+                print(f"  正在调用AI模型重试...")
+                retry_start_time = time.time()
+                
+                retry_resp = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=retry_messages,
+                    temperature=0.0,
+                    max_tokens=24576
+                )
+                
+                retry_elapsed = time.time() - retry_start_time
+                print(f"  ✅ 重试完成，耗时: {retry_elapsed:.2f} 秒")
+                
+                # 提取重试结果
+                retry_result = retry_resp.choices[0].message.content.strip()
+                
+                # 清理重试结果
+                if retry_result.startswith('```csv'):
+                    retry_result = retry_result[6:]
+                elif retry_result.startswith('```'):
+                    retry_result = retry_result[3:]
+                if retry_result.endswith('```'):
+                    retry_result = retry_result[:-3]
+                retry_result = retry_result.strip()
+                
+                # 解析重试结果
+                retry_lines = retry_result.split('\n')
+                retry_data_lines = [line for line in retry_lines if line.strip() and not line.startswith('工单单号')]
+                retry_row_count = len(retry_data_lines)
+                
+                print(f"  重试结果行数: {retry_row_count} 行（预期 {len(missing_order_numbers)} 行）")
+                
+                if retry_row_count > 0:
+                    # 合并重试结果到原结果中
+                    # 移除原结果的表头，添加重试的数据行
+                    original_data_lines = [line for line in quality_lines if line.strip() and not line.startswith('工单单号')]
+                    
+                    # 重新组装完整结果
+                    header = quality_lines[0] if quality_lines and quality_lines[0].startswith('工单单号') else '工单单号,工单性质,判定依据,保内保外,批次入库日期,安装日期,购机日期,产品名称,开发主体,故障部位名称,故障组,故障类别,服务项目或故障现象,维修方式,旧件名称,新件名称,来电内容,现场诊断故障现象,处理方案简述或备注'
+                    all_data_lines = original_data_lines + retry_data_lines
+                    quality_result = header + '\n' + '\n'.join(all_data_lines)
+                    
+                    # 更新统计
+                    quality_lines = quality_result.split('\n')
+                    final_lines = quality_lines
+                    final_row_count = len([line for line in final_lines if line.strip()]) - 1
+                    
+                    print(f"  ✅ 合并完成，当前总行数: {final_row_count} 行")
+                    
+                    # 累积token使用量
+                    accumulated_usage = type('obj', (object,), {
+                        'prompt_tokens': accumulated_usage.prompt_tokens + retry_resp.usage.prompt_tokens,
+                        'completion_tokens': accumulated_usage.completion_tokens + retry_resp.usage.completion_tokens,
+                        'total_tokens': accumulated_usage.total_tokens + retry_resp.usage.total_tokens
+                    })()
+                else:
+                    print(f"  ⚠️  重试未返回有效数据")
+                
+                retry_count += 1
+            
+            # 最终验证
+            if final_row_count < test_row_count:
+                missing_count = test_row_count - final_row_count
+                print(f"⚠️  警告: 经过 {retry_count} 次重试后仍不完整！缺少 {missing_count} 条记录 ({final_row_count}/{test_row_count})")
             elif final_row_count > test_row_count:
                 extra_count = final_row_count - test_row_count
                 print(f"⚠️  警告: 输出行数超出预期！多出 {extra_count} 条记录")
             else:
-                print(f"✅ 输出完整性验证通过")
+                if retry_count > 0:
+                    print(f"✅ 输出完整性验证通过（经过 {retry_count} 次重试）")
+                else:
+                    print(f"✅ 输出完整性验证通过")
             
             print("-"*80)
+            
+            # 使用累积的token使用量
+            resp2.usage.prompt_tokens = accumulated_usage.prompt_tokens
+            resp2.usage.completion_tokens = accumulated_usage.completion_tokens
+            resp2.usage.total_tokens = accumulated_usage.total_tokens
 
             # 合并token使用情况
             total_usage = {
