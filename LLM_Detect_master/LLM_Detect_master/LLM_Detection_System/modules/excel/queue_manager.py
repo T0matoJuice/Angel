@@ -401,6 +401,97 @@ class ExcelQueueManager:
             except Exception as e:
                 print(f"⚠️  提交判定结果到外部接口失败: {e}")
 
+            # ========================================
+            # 新增：生成Excel结果文件
+            # ========================================
+            print("🔨 正在生成Excel结果文件...")
+            
+            try:
+                if self.app:
+                    with self.app.app_context():
+                        # 从数据库查询所有记录
+                        from modules.excel.models import WorkorderUselessdata1, WorkorderUselessdata2
+                        records = WorkorderData.query.filter_by(filename=filename).all()
+                        
+                        # 定义19个字段
+                        expected_columns = ['工单单号','工单性质','判定依据','保内保外','批次入库日期','安装日期','购机日期',
+                                          '产品名称','开发主体','故障部位名称','故障组','故障类别','服务项目或故障现象',
+                                          '维修方式','旧件名称','新件名称','来电内容','现场诊断故障现象','处理方案简述或备注']
+                        
+                        # 构建结果数据
+                        temp_data = []
+                        for record in records:
+                            u1 = WorkorderUselessdata1.query.filter_by(filename=filename, workAlone=record.workAlone).first()
+                            u2 = WorkorderUselessdata2.query.filter_by(filename=filename, workAlone=record.workAlone).first()
+                            
+                            def norm(v):
+                                return '' if v is None or v == 'None' or (isinstance(v, float) and pd.isna(v)) else str(v)
+                            
+                            row_data = {
+                                '工单单号': norm(record.workAlone),
+                                '工单性质': norm(record.workOrderNature),
+                                '判定依据': norm(record.judgmentBasis),
+                                '保内保外': norm(u1.internalExternalInsurance if u1 else ''),
+                                '批次入库日期': norm(u1.batchWarehousingDate if u1 else ''),
+                                '安装日期': norm(u1.installDate if u1 else ''),
+                                '购机日期': norm(u1.purchaseDate if u1 else ''),
+                                '产品名称': norm(u1.productName if u1 else ''),
+                                '开发主体': norm(u1.developmentSubject if u1 else ''),
+                                '故障部位名称': norm(record.replacementPartName),
+                                '故障组': norm(record.faultGroup),
+                                '故障类别': norm(record.faultClassification),
+                                '服务项目或故障现象': norm(record.faultPhenomenon),
+                                '维修方式': norm(u2.maintenanceMode if u2 else ''),
+                                '旧件名称': norm(u2.oldPartName if u2 else ''),
+                                '新件名称': norm(u2.newPartName if u2 else ''),
+                                '来电内容': norm(record.callContent),
+                                '现场诊断故障现象': norm(record.onsiteFaultPhenomenon),
+                                '处理方案简述或备注': norm(record.remarks),
+                            }
+                            temp_data.append({k: row_data.get(k, '') for k in expected_columns})
+                        
+                        # 创建DataFrame
+                        df_result = pd.DataFrame(temp_data, columns=expected_columns)
+                        
+                        # 生成结果文件名（使用原始filename，保持一致性）
+                        # 确保文件名以.xlsx结尾
+                        if filename.lower().endswith('.xlsx'):
+                            base_filename = filename[:-5]  # 去掉.xlsx
+                            excel_filename = f"quality_result_{filename}"
+                            csv_filename = f"quality_result_{base_filename}.csv"
+                        else:
+                            excel_filename = f"quality_result_{filename}.xlsx"
+                            csv_filename = f"quality_result_{filename}.csv"
+                        
+                        # 保存文件
+                        import os
+                        results_folder = self.app.config.get('RESULTS_FOLDER', 'results')
+                        
+                        # 保存Excel文件
+                        excel_filepath = os.path.join(results_folder, excel_filename)
+                        df_result.to_excel(excel_filepath, index=False)
+                        print(f"✅ Excel结果文件已生成: {excel_filename}")
+                        
+                        # 保存CSV文件（用于前端预览）
+                        csv_filepath = os.path.join(results_folder, csv_filename)
+                        df_result.to_csv(csv_filepath, index=False, encoding='utf-8')
+                        print(f"✅ CSV结果文件已生成: {csv_filename}")
+                        
+                        # 将结果保存到task_results字典中
+                        with self.lock:
+                            self.task_results[filename] = {
+                                'excel_filename': excel_filename,
+                                'csv_filename': csv_filename,  # 现在有CSV文件了
+                                'rows_processed': len(df_result),
+                                'completed_count': updated_count,
+                                'total_count': processed_count
+                            }
+                        
+            except Exception as e:
+                print(f"⚠️  生成Excel结果文件失败: {str(e)}")
+                import traceback
+                traceback.print_exc()
+
             return {
                 'success': True,
                 'processed_count': processed_count,
