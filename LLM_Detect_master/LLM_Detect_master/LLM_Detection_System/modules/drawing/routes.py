@@ -407,9 +407,24 @@ def drawing_download_report(record_id):
             print(f"❌ file_path为空")
             return jsonify({'error': 'PDF文件路径为空'}), 404
 
+        # 如果数据库中的路径不存在，尝试从当前UPLOAD_FOLDER中查找
         if not os.path.exists(pdf_path):
-            print(f"❌ PDF文件不存在: {pdf_path}")
-            return jsonify({'error': f'PDF文件不存在: {pdf_path}'}), 404
+            print(f"⚠️  数据库路径无效: {pdf_path}")
+            print(f"   尝试从当前UPLOAD_FOLDER中查找文件...")
+            
+            # 从路径中提取文件名
+            filename = os.path.basename(pdf_path)
+            # 构建新的路径
+            new_pdf_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+            
+            print(f"   新路径: {new_pdf_path}")
+            
+            if os.path.exists(new_pdf_path):
+                print(f"✅ 在新路径找到文件")
+                pdf_path = new_pdf_path
+            else:
+                print(f"❌ 文件不存在: {new_pdf_path}")
+                return jsonify({'error': f'PDF文件不存在，请重新上传'}), 404
 
         print(f"✅ PDF文件存在: {pdf_path}")
 

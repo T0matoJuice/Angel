@@ -474,18 +474,115 @@ def excel_get_history():
     """获取Excel处理历史记录API接口
 
     返回用户的Excel处理历史记录列表，用于历史记录页面显示
+    从数据库读取所有上传记录（包括网页上传和API上传）
+    
+    URL参数:
+        show_all: 设置为1时显示所有用户的记录（用于调试）
 
     Returns:
         JSON: 包含历史记录列表和数量的响应数据
     """
     try:
-        history_records = get_excel_history()
+        # 从数据库查询历史记录，按时间倒序排列
+        # 使用 DISTINCT 去重，因为一个文件可能有多条工单记录
+        from sqlalchemy import func, desc
+        from modules.excel.models import WorkorderData
+        
+        # 检查是否显示所有用户的记录
+        show_all = request.args.get('show_all', '0') == '1'
+        
+        # 调试：打印当前登录用户
+        print(f"🔍 [历史记录] 当前登录用户: {current_user.username}")
+        print(f"🔍 [历史记录] show_all参数: {show_all}")
+        
+        # 调试：查询所有记录（不限制用户）
+        all_records_query = db.session.query(
+            WorkorderData.account,
+            WorkorderData.filename,
+            func.count(WorkorderData.id).label('count')
+        ).group_by(
+            WorkorderData.account,
+            WorkorderData.filename
+        ).order_by(
+            desc(WorkorderData.filename)
+        ).limit(10)
+        
+        all_records = all_records_query.all()
+        print(f"🔍 [历史记录] 数据库中最近的10条记录:")
+        for rec in all_records:
+            print(f"   - account={rec.account}, filename={rec.filename}, count={rec.count}")
+        
+        # 查询上传记录（按文件名分组）
+        query = db.session.query(
+            WorkorderData.account,  # 添加account字段
+            WorkorderData.filename,
+            WorkorderData.datatime,
+            func.count(WorkorderData.id).label('rows_processed')
+        ).group_by(
+            WorkorderData.account,
+            WorkorderData.filename,
+            WorkorderData.datatime
+        ).order_by(
+            desc(WorkorderData.datatime)
+        )
+        
+        # 如果不是显示所有记录，则只查询当前用户的记录
+        if not show_all:
+            query = query.filter(WorkorderData.account == current_user.username)
+        
+        query = query.limit(100)  # 限制最多返回100条记录
+        
+        results = query.all()
+        
+        print(f"🔍 [历史记录] 查询到的记录数: {len(results)}")
+        
+        # 格式化历史记录
+        history_records = []
+        for record in results:
+            # 从文件名中提取原始文件名（去掉时间戳前缀）
+            filename = record.filename
+            original_filename = filename
+            
+            # 尝试提取原始文件名（格式：时间戳_原始文件名）
+            if '_' in filename:
+                parts = filename.split('_', 1)
+                if len(parts) == 2:
+                    original_filename = parts[1]
+            
+            # 检查是否存在结果文件
+            # 结果文件命名格式：quality_result_文件名.xlsx
+            # 确保文件名以.xlsx结尾（与队列管理器生成的文件名一致）
+            if filename.lower().endswith('.xlsx'):
+                result_filename = f"quality_result_{filename}"
+            else:
+                result_filename = f"quality_result_{filename}.xlsx"
+            
+            result_filepath = os.path.join(current_app.config['RESULTS_FOLDER'], result_filename)
+            has_result_file = os.path.exists(result_filepath)
+            
+            history_records.append({
+                'id': str(hash(filename)),  # 使用文件名的哈希作为ID
+                'filename': filename,
+                'original_filename': original_filename,
+                'rows_processed': record.rows_processed,
+                'timestamp': record.datatime,
+                'created_at': record.datatime,
+                'has_result_file': has_result_file,  # 新增：是否有结果文件
+                'result_filename': result_filename if has_result_file else None,  # 新增：结果文件名
+                'account': record.account  # 新增：显示账号信息
+            })
+        
         return jsonify({
             'success': True,
             'records': history_records,
-            'total': len(history_records)
+            'total': len(history_records),
+            'show_all': show_all,  # 返回是否显示所有记录的标志
+            'current_user': current_user.username  # 返回当前用户名
         })
     except Exception as e:
+        print(f"获取历史记录失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'获取历史记录失败: {str(e)}'}), 500
 
 @excel_bp.route('/api/history/<record_id>')
@@ -494,21 +591,65 @@ def excel_get_history_detail(record_id):
     """获取Excel处理历史记录的详细信息
 
     根据记录ID查找并返回特定的Excel处理历史记录详情
+    从数据库读取记录详情
 
     Args:
-        record_id (str): 历史记录的唯一标识符
+        record_id (str): 历史记录的唯一标识符（文件名的哈希值）
 
     Returns:
         JSON: 包含历史记录详细信息的响应数据
     """
     try:
-        history_records = get_excel_history()
-
-        # 遍历查找指定ID的记录
+        from sqlalchemy import func
+        from modules.excel.models import WorkorderData
+        
+        # 查询所有上传记录（不过滤账号，与历史记录列表API保持一致）
+        query = db.session.query(
+            WorkorderData.account,  # 添加account字段
+            WorkorderData.filename,
+            WorkorderData.datatime,
+            func.count(WorkorderData.id).label('rows_processed')
+        ).group_by(
+            WorkorderData.account,
+            WorkorderData.filename,
+            WorkorderData.datatime
+        )
+        
+        results = query.all()
+        
+        # 查找匹配的记录
         target_record = None
-        for record in history_records:
-            if record['id'] == record_id:
-                target_record = record
+        for record in results:
+            filename = record.filename
+            if str(hash(filename)) == record_id:
+                # 从文件名中提取原始文件名
+                original_filename = filename
+                if '_' in filename:
+                    parts = filename.split('_', 1)
+                    if len(parts) == 2:
+                        original_filename = parts[1]
+                
+                # 检查是否存在结果文件
+                # 确保文件名以.xlsx结尾（与队列管理器生成的文件名一致）
+                if filename.lower().endswith('.xlsx'):
+                    result_filename = f"quality_result_{filename}"
+                else:
+                    result_filename = f"quality_result_{filename}.xlsx"
+                
+                result_filepath = os.path.join(current_app.config['RESULTS_FOLDER'], result_filename)
+                has_result_file = os.path.exists(result_filepath)
+                
+                target_record = {
+                    'id': record_id,
+                    'filename': filename,
+                    'original_filename': original_filename,
+                    'rows_processed': record.rows_processed,
+                    'timestamp': record.datatime,
+                    'created_at': record.datatime,
+                    'has_result_file': has_result_file,
+                    'result_filename': result_filename if has_result_file else None,
+                    'account': record.account  # 添加账号信息
+                }
                 break
 
         if not target_record:
@@ -520,6 +661,9 @@ def excel_get_history_detail(record_id):
         })
 
     except Exception as e:
+        print(f"获取历史记录详情失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'获取历史记录详情失败: {str(e)}'}), 500
 
 @excel_bp.route('/quality-upload', methods=['POST'])
