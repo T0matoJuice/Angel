@@ -339,6 +339,14 @@
             color: #155724;
         }
 
+        /* 文件名样式 - 限制宽度并显示省略号 */
+        .filename-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .history-conclusion {
             display: inline-block;
             padding: 4px 10px;
@@ -770,7 +778,7 @@
 
                     tr.innerHTML = `
                         <td>${r.timestamp}</td>
-                        <td>
+                        <td class="filename-cell" title="${r.original_filename}">
                             ${r.original_filename}
                             ${sourceTag}
                         </td>
@@ -793,7 +801,7 @@
 
                     tr.innerHTML = `
                         <td>${r.timestamp}</td>
-                        <td>
+                        <td class="filename-cell" title="${r.original_filename}">
                             ${r.original_filename}
                             <div style="font-size: 12px; color: #666; margin-top: 4px;">账号: ${r.account || '--'}</div>
                         </td>
