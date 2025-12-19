@@ -35,6 +35,33 @@
             gap: 20px;
         }
 
+        /* 返回按钮样式 */
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--grad-left);
+            text-decoration: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: .3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .1);
+        }
+
+        .back-btn:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
         /* 顶部操作区 */
         .header {
             background: var(--card-bg);
@@ -248,6 +275,10 @@
     <div class="container">
         <!-- 顶部操作区 -->
         <div class="header">
+            <a href="/drawing" class="back-btn">
+                <span>←</span>
+                <span>返回制图检测系统</span>
+            </a>
             <div class="title">AI检测问题汇总</div>
 
             <div class="date-range">
