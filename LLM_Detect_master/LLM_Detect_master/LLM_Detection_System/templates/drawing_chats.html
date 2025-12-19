@@ -256,6 +256,14 @@
             color: #383d41;
         }
 
+        /* 文件名/物料名称样式 - 限制宽度并显示省略号 */
+        .filename-cell {
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         /* 页面大小选择器 */
         .page-size-control {
             display: flex;
@@ -643,9 +651,9 @@
                 <td>${item.check_date}</td>
                 <td><span class="badge badge-${item.issue_type}">${item.issue_type}</span></td>
                 <td>${item.engineer}</td>
-                <td>${item.material_name}</td>
+                <td class="filename-cell" title="${item.material_name}">${item.material_name}</td>
                 <td>${item.material_type}</td>
-                <td>${item.drawing_id}</td>
+                <td class="filename-cell" title="${item.drawing_id}">${item.drawing_id}</td>
             `;
                 tbody.appendChild(row);
             });
