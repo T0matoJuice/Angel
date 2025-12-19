@@ -873,11 +873,11 @@
                 </div>
 
                 <div style="margin-bottom:15px;">
-                    <strong>结果文件：</strong>${record.filename}
+                    <strong>结果文件：</strong>${record.result_filename || record.filename}
                 </div>
 
                 <div style="text-align:center;margin-top:20px;">
-                    <button class="download-report-btn" onclick="downloadFile('${record.id}', '${record.filename}', true)">
+                    <button class="download-report-btn" onclick="downloadFile('${record.id}', '${record.result_filename || record.filename}', true)">
                         📥 下载处理结果
                     </button>
                 </div>
