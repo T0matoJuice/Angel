@@ -11,6 +11,7 @@ import time
 from typing import Dict, Optional
 from flask import current_app
 from modules.drawing.services import inspect_drawing_api
+from modules.drawing.services_try import inspect_drawing_test
 from modules.drawing.models import DrawingData
 from modules.auth import db
 import requests
@@ -190,8 +191,19 @@ class InspectionQueueManager:
             dict: 检测结果
         """
         try:
-            # 调用检测服务
-            result = inspect_drawing_api(filepath)
+            # 获取图纸类型
+            drawing_type = None
+            if self.app:
+                with self.app.app_context():
+                    record = DrawingData.query.filter_by(id=int(record_id)).first()
+                    if record:
+                        drawing_type = record.engineering_drawing_type
+                        print(f"📋 图纸类型: {drawing_type}")
+                    else:
+                        print(f"⚠️  警告: 找不到ID={record_id}的记录")
+
+            # 调用测试检测函数，传入图纸类型
+            result = inspect_drawing_test(filepath, drawing_type)
 
             if 'error' in result:
                 # 检测失败
