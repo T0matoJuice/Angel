@@ -35,6 +35,33 @@
             gap: 20px;
         }
 
+        /* 返回按钮样式 */
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--grad-left);
+            text-decoration: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: .3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .1);
+        }
+
+        .back-btn:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
         /* 顶部操作区 */
         .header {
             background: var(--card-bg);
@@ -229,6 +256,86 @@
             color: #383d41;
         }
 
+        /* 文件名/物料名称样式 - 限制宽度并显示省略号 */
+        .filename-cell {
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 页面大小选择器 */
+        .page-size-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-size-control label {
+            font-size: 13px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .page-size-select {
+            height: 32px;
+            padding: 0 8px;
+            border: 1px solid #d0d0d0;
+            border-radius: 4px;
+            font-size: 13px;
+            background: white;
+        }
+
+        /* 分页控制 */
+        .pagination-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 25px;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .pagination-info {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .pagination-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .pagination-btn {
+            padding: 6px 12px;
+            font-size: 13px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-btn.active {
+            background: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
+        }
+
         /* 响应式 */
         @media (max-width: 768px) {
             .header {
@@ -248,6 +355,10 @@
     <div class="container">
         <!-- 顶部操作区 -->
         <div class="header">
+            <a href="/drawing" class="back-btn" target="_self" rel="noopener">
+                <span>←</span>
+                <span>返回制图检测系统</span>
+            </a>
             <div class="title">AI检测问题汇总</div>
 
             <div class="date-range">
@@ -344,17 +455,26 @@
         <div class="table-card">
             <div class="section-title">
                 📋 问题明细列表
-                <div>
-                    <label for="issueTypeFilter">问题类型筛选：</label>
-                    <select id="issueTypeFilter" onchange="filterTable()">
-                        <option value="">全部</option>
-                        <option value="尺寸错误">尺寸错误</option>
-                        <option value="版本错误">版本错误</option>
-                        <option value="图框错误">图标错误</option>
-                        <option value="缺少单一材质重量">缺少单一材质重量</option>
-                        <option value="缺少重点尺寸">缺少重点尺寸</option>
-                        <option value="缺少未注公差">缺少未注公差</option>
-                    </select>
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div>
+                        <label for="issueTypeFilter">问题类型筛选：</label>
+                        <select id="issueTypeFilter" onchange="filterTable()">
+                            <option value="">全部</option>
+                            <option value="尺寸错误">尺寸错误</option>
+                            <option value="版本错误">版本错误</option>
+                            <option value="图框错误">图标错误</option>
+                            <option value="缺少单一材质重量">缺少单一材质重量</option>
+                            <option value="缺少重点尺寸">缺少重点尺寸</option>
+                            <option value="缺少未注公差">缺少未注公差</option>
+                        </select>
+                    </div>
+                    <div class="page-size-control">
+                        <label for="pageSize">每页显示：</label>
+                        <select id="pageSize" class="page-size-select" onchange="changePageSize()">
+                            <option value="5">5条</option>
+                            <option value="10" selected>10条</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <table id="detailTable">
@@ -373,6 +493,10 @@
                     <!-- 数据由JavaScript动态加载 -->
                 </tbody>
             </table>
+            <div id="paginationControl" class="pagination-control" style="display:none">
+                <div class="pagination-info" id="paginationInfo"></div>
+                <div class="pagination-buttons" id="paginationButtons"></div>
+            </div>
         </div>
     </div>
 
@@ -382,6 +506,9 @@
         /* 全局变量 */
         let chart;
         let currentData = null; // 存储当前数据
+        let currentPage = 1; // 当前页码
+        let pageSize = 10; // 每页显示数量
+        let currentDisplayData = []; // 当前显示的明细数据
 
         /* 问题类型配置 */
         const issueTypes = [
@@ -492,25 +619,168 @@
             });
         }
 
-        /* 更新明细表格 */
+        /* 更新明细表格（支持分页） */
         function updateDetailsTable(details) {
+            currentDisplayData = details || [];
+            renderDetailsTable();
+        }
+
+        /* 渲染明细表格 */
+        function renderDetailsTable() {
             const tbody = document.getElementById('detailBody');
             tbody.innerHTML = '';
 
-            details.forEach((item, index) => {
+            if (!currentDisplayData || currentDisplayData.length === 0) {
+                document.getElementById('paginationControl').style.display = 'none';
+                return;
+            }
+
+            // 计算分页数据
+            const totalRecords = currentDisplayData.length;
+            const totalPages = Math.ceil(totalRecords / pageSize);
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, totalRecords);
+            const pageData = currentDisplayData.slice(startIndex, endIndex);
+
+            // 渲染当前页的数据
+            pageData.forEach((item, index) => {
                 const row = document.createElement('tr');
                 row.setAttribute('data-type', item.issue_type);
                 row.innerHTML = `
-                <td>${index + 1}</td>
+                <td>${startIndex + index + 1}</td>
                 <td>${item.check_date}</td>
                 <td><span class="badge badge-${item.issue_type}">${item.issue_type}</span></td>
                 <td>${item.engineer}</td>
-                <td>${item.material_name}</td>
+                <td class="filename-cell" title="${item.material_name}">${item.material_name}</td>
                 <td>${item.material_type}</td>
-                <td>${item.drawing_id}</td>
+                <td class="filename-cell" title="${item.drawing_id}">${item.drawing_id}</td>
             `;
                 tbody.appendChild(row);
             });
+
+            // 渲染分页控制
+            renderPagination(totalRecords, totalPages);
+        }
+
+        /* 渲染分页控制 */
+        function renderPagination(totalRecords, totalPages) {
+            const paginationControl = document.getElementById('paginationControl');
+            const paginationInfo = document.getElementById('paginationInfo');
+            const paginationButtons = document.getElementById('paginationButtons');
+
+            if (totalPages <= 1) {
+                paginationControl.style.display = 'none';
+                return;
+            }
+
+            paginationControl.style.display = 'flex';
+
+            // 更新分页信息
+            const startRecord = (currentPage - 1) * pageSize + 1;
+            const endRecord = Math.min(currentPage * pageSize, totalRecords);
+            paginationInfo.innerHTML = `显示 ${startRecord} - ${endRecord} 条，共 ${totalRecords} 条`;
+
+            // 清空按钮容器
+            paginationButtons.innerHTML = '';
+
+            // 上一页按钮
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '上一页';
+            prevBtn.className = 'pagination-btn';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderDetailsTable();
+                }
+            };
+            paginationButtons.appendChild(prevBtn);
+
+            // 页码按钮
+            const maxButtons = 7;
+            let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+            let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+            if (endPage - startPage + 1 < maxButtons) {
+                startPage = Math.max(1, endPage - maxButtons + 1);
+            }
+
+            // 第一页和省略号
+            if (startPage > 1) {
+                const firstBtn = document.createElement('button');
+                firstBtn.textContent = '1';
+                firstBtn.className = 'pagination-btn';
+                firstBtn.onclick = () => {
+                    currentPage = 1;
+                    renderDetailsTable();
+                };
+                paginationButtons.appendChild(firstBtn);
+
+                if (startPage > 2) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '...';
+                    dots.style.padding = '0 5px';
+                    dots.style.fontSize = '13px';
+                    dots.style.color = '#999';
+                    paginationButtons.appendChild(dots);
+                }
+            }
+
+            // 中间页码
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.textContent = i;
+                pageBtn.className = 'pagination-btn';
+                if (i === currentPage) {
+                    pageBtn.classList.add('active');
+                }
+                pageBtn.onclick = () => {
+                    currentPage = i;
+                    renderDetailsTable();
+                };
+                paginationButtons.appendChild(pageBtn);
+            }
+
+            // 最后一页和省略号
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '...';
+                    dots.style.padding = '0 5px';
+                    dots.style.fontSize = '13px';
+                    dots.style.color = '#999';
+                    paginationButtons.appendChild(dots);
+                }
+
+                const lastBtn = document.createElement('button');
+                lastBtn.textContent = totalPages;
+                lastBtn.className = 'pagination-btn';
+                lastBtn.onclick = () => {
+                    currentPage = totalPages;
+                    renderDetailsTable();
+                };
+                paginationButtons.appendChild(lastBtn);
+            }
+
+            // 下一页按钮
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = '下一页';
+            nextBtn.className = 'pagination-btn';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderDetailsTable();
+                }
+            };
+            paginationButtons.appendChild(nextBtn);
+        }
+
+        /* 改变页面大小 */
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('pageSize').value);
+            currentPage = 1; // 重置到第一页
+            renderDetailsTable();
         }
 
         /* 切换图表 */
