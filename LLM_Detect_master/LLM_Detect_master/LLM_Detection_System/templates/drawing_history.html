@@ -168,6 +168,76 @@
             background: #e9ecef;
         }
 
+        /* 页面大小选择器 */
+        .page-size-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .page-size-control label {
+            font-size: 13px;
+            color: #555;
+        }
+
+        .page-size-select {
+            height: 32px;
+            padding: 0 8px;
+            border: 1px solid #ccd5db;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        /* 分页控制 */
+        .pagination-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 25px;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .pagination-info {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .pagination-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .pagination-btn {
+            padding: 6px 12px;
+            font-size: 13px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-btn.active {
+            background: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
+        }
+
         /* 表格 */
         .excel-table {
             width: 100%;
@@ -267,6 +337,14 @@
         .history-conclusion.conclusion-处理完成 {
             background: #d4edda;
             color: #155724;
+        }
+
+        /* 文件名样式 - 限制宽度并显示省略号 */
+        .filename-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .history-conclusion {
@@ -501,7 +579,7 @@
 
     <div class="container">
         <div class="header">
-            <h1>📋 制图检测历史记录</h1>
+            <h1>📋 图纸AI检测历史记录</h1>
             <p>查看/筛选/导出检测结果</p>
         </div>
 
@@ -522,6 +600,16 @@
                     <button class="data-type-btn active" onclick="switchDataType('drawing')"
                         id="drawingBtn">制图检测</button>
                     <button class="data-type-btn" onclick="switchDataType('excel')" id="excelBtn">工单处理</button>
+                </div>
+
+                <!-- 页面大小选择器 -->
+                <div class="page-size-control">
+                    <label for="pageSize">每页显示：</label>
+                    <select id="pageSize" class="page-size-select" onchange="changePageSize()">
+                        <option value="5">5条</option>
+                        <option value="10" selected>10条</option>
+                        <option value="15">15条</option>
+                    </select>
                 </div>
             </div>
 
@@ -551,6 +639,12 @@
                 <div class="loading-spinner"></div>
                 <p>正在加载历史记录...</p>
             </div>
+
+            <!-- 分页控制 -->
+            <div id="paginationControl" class="pagination-control" style="display:none">
+                <div class="pagination-info" id="paginationInfo"></div>
+                <div class="pagination-buttons" id="paginationButtons"></div>
+            </div>
         </div>
     </div>
 
@@ -569,9 +663,15 @@
         // 全局变量
         let rawRecords = [];   // 原始数据
         let currentDataType = 'drawing'; // 当前数据类型: 'drawing' 或 'excel'
+        let currentPage = 1; // 当前页码
+        let pageSize = 10; // 每页显示数量
+        let currentDisplayData = []; // 当前显示的数据（经过筛选）
         const tbody = document.getElementById('historyBody');
         const emptyTr = document.getElementById('emptyTr');
         const loadingState = document.getElementById('loadingState');
+        const paginationControl = document.getElementById('paginationControl');
+        const paginationInfo = document.getElementById('paginationInfo');
+        const paginationButtons = document.getElementById('paginationButtons');
 
         // 页面加载完成后获取历史记录
         document.addEventListener('DOMContentLoaded', function () {
@@ -590,7 +690,7 @@
             const title = document.querySelector('.header h1');
             const subtitle = document.querySelector('.header p');
             if (type === 'drawing') {
-                title.textContent = '📋 制图检测历史记录';
+                title.textContent = '📋 图纸AI检测历史记录';
                 subtitle.textContent = '查看/筛选/导出检测结果';
                 document.getElementById('usernameCol').style.display = 'table-cell';
                 emptyTr.innerHTML = `
@@ -643,19 +743,31 @@
                 });
         }
 
-        // 渲染表格
+        // 渲染表格（支持分页）
         function renderTable(data) {
+            currentDisplayData = data || [];
             tbody.innerHTML = '';
-            if (!data || data.length === 0) {
+
+            if (!currentDisplayData || currentDisplayData.length === 0) {
                 emptyTr.style.display = 'block';
+                paginationControl.style.display = 'none';
                 return;
             }
+
             emptyTr.style.display = 'none';
 
             // 设置用户名列显示状态（两种模式都显示）
             document.getElementById('usernameCol').style.display = 'table-cell';
 
-            data.forEach(r => {
+            // 计算分页数据
+            const totalRecords = currentDisplayData.length;
+            const totalPages = Math.ceil(totalRecords / pageSize);
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, totalRecords);
+            const pageData = currentDisplayData.slice(startIndex, endIndex);
+
+            // 渲染当前页的数据
+            pageData.forEach(r => {
                 const tr = document.createElement('tr');
 
                 if (currentDataType === 'drawing') {
@@ -666,7 +778,7 @@
 
                     tr.innerHTML = `
                         <td>${r.timestamp}</td>
-                        <td>
+                        <td class="filename-cell" title="${r.original_filename}">
                             ${r.original_filename}
                             ${sourceTag}
                         </td>
@@ -689,7 +801,7 @@
 
                     tr.innerHTML = `
                         <td>${r.timestamp}</td>
-                        <td>
+                        <td class="filename-cell" title="${r.original_filename}">
                             ${r.original_filename}
                             <div style="font-size: 12px; color: #666; margin-top: 4px;">账号: ${r.account || '--'}</div>
                         </td>
@@ -702,6 +814,138 @@
                 }
                 tbody.appendChild(tr);
             });
+
+            // 渲染分页控制
+            renderPagination(totalRecords, totalPages);
+        }
+
+        // 渲染分页控制
+        function renderPagination(totalRecords, totalPages) {
+            if (totalPages <= 1) {
+                paginationControl.style.display = 'none';
+                return;
+            }
+
+            paginationControl.style.display = 'flex';
+
+            // 更新分页信息
+            const startRecord = (currentPage - 1) * pageSize + 1;
+            const endRecord = Math.min(currentPage * pageSize, totalRecords);
+            paginationInfo.innerHTML = `显示 ${startRecord} - ${endRecord} 条，共 ${totalRecords} 条`;
+
+            // 更新分页按钮
+            paginationButtons.innerHTML = '';
+
+            // 上一页按钮
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '上一页';
+            prevBtn.className = 'pagination-btn';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderTable(currentDisplayData);
+                    updatePageSizeSelector();
+                }
+            };
+            paginationButtons.appendChild(prevBtn);
+
+            // 页码按钮
+            const maxButtons = 7; // 最多显示的页码按钮数
+            let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+            let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+            if (endPage - startPage + 1 < maxButtons) {
+                startPage = Math.max(1, endPage - maxButtons + 1);
+            }
+
+            // 第一页和省略号
+            if (startPage > 1) {
+                const firstBtn = document.createElement('button');
+                firstBtn.textContent = '1';
+                firstBtn.className = 'pagination-btn';
+                firstBtn.onclick = () => {
+                    currentPage = 1;
+                    renderTable(currentDisplayData);
+                    updatePageSizeSelector();
+                };
+                paginationButtons.appendChild(firstBtn);
+
+                if (startPage > 2) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '...';
+                    dots.style.padding = '0 5px';
+                    dots.style.fontSize = '13px';
+                    dots.style.color = '#999';
+                    paginationButtons.appendChild(dots);
+                }
+            }
+
+            // 中间页码
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.textContent = i;
+                pageBtn.className = 'pagination-btn';
+                if (i === currentPage) {
+                    pageBtn.classList.add('active');
+                }
+                pageBtn.onclick = () => {
+                    currentPage = i;
+                    renderTable(currentDisplayData);
+                    updatePageSizeSelector();
+                };
+                paginationButtons.appendChild(pageBtn);
+            }
+
+            // 最后一页和省略号
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '...';
+                    dots.style.padding = '0 5px';
+                    dots.style.fontSize = '13px';
+                    dots.style.color = '#999';
+                    paginationButtons.appendChild(dots);
+                }
+
+                const lastBtn = document.createElement('button');
+                lastBtn.textContent = totalPages;
+                lastBtn.className = 'pagination-btn';
+                lastBtn.onclick = () => {
+                    currentPage = totalPages;
+                    renderTable(currentDisplayData);
+                    updatePageSizeSelector();
+                };
+                paginationButtons.appendChild(lastBtn);
+            }
+
+            // 下一页按钮
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = '下一页';
+            nextBtn.className = 'pagination-btn';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderTable(currentDisplayData);
+                    updatePageSizeSelector();
+                }
+            };
+            paginationButtons.appendChild(nextBtn);
+        }
+
+        // 改变页面大小
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('pageSize').value);
+            currentPage = 1; // 重置到第一页
+            if (currentDisplayData.length > 0) {
+                renderTable(currentDisplayData);
+            }
+        }
+
+        // 更新页面大小选择器
+        function updatePageSizeSelector() {
+            document.getElementById('pageSize').value = pageSize;
         }
 
         // 筛选
