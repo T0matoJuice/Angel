@@ -3,12 +3,21 @@
 """
 Excel工单智能处理器模块 - 提供基于硅基流动大模型的工单数据智能填充和分析功能
 """
-
+import json
 import os
 import pandas as pd
 from pathlib import Path
 from openai import OpenAI
 from modules.common.prompts import load_prompt
+from threading import Lock
+import tempfile
+import traceback
+import threading
+from typing import Tuple, List, Dict, Optional
+import copy
+# 全局锁：用于日志打印和表头写入（避免多线程混乱）
+print_lock = Lock()
+header_lock = Lock()
 
 class Processor:
     """Excel工单智能填充处理器
@@ -41,6 +50,7 @@ class Processor:
         self.api_key = 'sk-IJmn6jASTNLPTyGtP3ShBJj9YjUc8EHFereXUZBi265sHiQG'
         self.model = 'kimi-k2-turbo-preview'  # 或者你想用的模型名称
         self.base_url = 'https://api.moonshot.cn/v1'
+        self._thread_local = threading.local()
 
         if not self.api_key:
             raise ValueError("未找到MOONSHOT_API_KEY环境变量")
@@ -186,7 +196,7 @@ class Processor:
             return csv_text
 
 
-    def learn_rules(self, training_excel: str) -> tuple:
+    def learn_rules(self, training_excel: str, use_cache: bool = True) -> tuple:
         """第一阶段：从训练数据中学习工单问题点推理规则
 
         分析训练Excel数据，学习如何根据工单信息推理出维修问题点和二级问题点
@@ -198,6 +208,16 @@ class Processor:
             tuple: (学习到的规则和对话消息, API使用统计)
         """
         try:
+            # 如果使用缓存且文件存在，则直接读取
+            rules_file = os.path.join(os.path.dirname(training_excel), "rules.json")
+            print(rules_file)
+            if use_cache and os.path.exists(rules_file):
+                with open(rules_file, "r", encoding="utf-8") as f:
+                    cached_data = json.load(f)
+                messages = cached_data["messages"]
+                rules = cached_data["rules"]
+                return messages, rules, None
+
             # 读取训练Excel文件内容（硅基流动不支持文件上传，直接读取内容）
             def _compact_training(df: pd.DataFrame) -> str:
                 df = df.copy()
@@ -281,6 +301,9 @@ class Processor:
             # 提取学习到的规则
             rules = resp1.choices[0].message.content.strip()
             messages.append({"role": "assistant", "content": rules})
+
+            with open(rules_file, "w", encoding="utf-8") as f:
+                json.dump({"messages": messages, "rules": rules}, f, ensure_ascii=False, indent=4)
 
             return messages, rules, resp1.usage  # 返回对话历史、规则和token使用量
 
@@ -489,9 +512,18 @@ class Processor:
         except Exception as e:
             raise Exception(f"应用非质量问题识别规则失败: {str(e)}")
 
-    def learn_quality_rules(self, training_excel: str) -> tuple:
+    def learn_quality_rules(self, training_excel: str, use_cache: bool = True) -> tuple:
         """新版本：两阶段推理 - 第一阶段：学习维修问题点推理规则 - 方法"""
         try:
+            rules_file = os.path.join(os.path.dirname(training_excel), "rules.json")
+
+            # 如果使用缓存且文件存在，则直接读取
+            if use_cache and os.path.exists(rules_file):
+                with open(rules_file, "r", encoding="utf-8") as f:
+                    cached_data = json.load(f)
+                messages = cached_data["messages"]
+                rules = cached_data["rules"]
+                return messages, rules, None
             import time
 
             print("\n" + "="*80)
@@ -611,6 +643,12 @@ class Processor:
             print(f"Token使用: 输入={resp1.usage.prompt_tokens}, 输出={resp1.usage.completion_tokens}, 总计={resp1.usage.total_tokens}")
             print("-"*80)
 
+            with open(rules_file, "w", encoding="utf-8") as f:
+                json.dump({
+                    "messages": messages,
+                    "rules": rules,
+                }, f, ensure_ascii=False, indent=4)
+
             return messages, rules, resp1.usage
 
         except Exception as e:
@@ -620,6 +658,20 @@ class Processor:
             import traceback
             print(f"错误堆栈:\n{traceback.format_exc()}")
             raise Exception(f"学习维修问题点推理规则失败: {str(e)}")
+
+    def _get_thread_client(self) -> OpenAI:
+        """获取线程专用的客户端实例"""
+        if not hasattr(self._thread_local, 'client'):
+            self._thread_local.client = OpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url,
+                timeout=600
+            )
+        return self._thread_local.client
+
+    def _deep_copy_messages(self, original_messages: List[Dict]) -> List[Dict]:
+        """深拷贝消息列表，确保每个线程有独立的副本"""
+        return copy.deepcopy(original_messages)
 
     def apply_quality_rules(self, messages: list, test_excel: str) -> tuple:
         """工单类型检测：两阶段推理处理
@@ -636,7 +688,10 @@ class Processor:
         """
         try:
             import time
-
+            # 1. 创建线程独立的消息副本
+            thread_messages = self._deep_copy_messages(messages)
+            # 2. 获取线程专用的客户端
+            client = self._get_thread_client()
             print("\n" + "="*80)
             print("[质量工单检测] 步骤3: 加载测试数据")
             print("="*80)
@@ -686,7 +741,8 @@ class Processor:
 
             # 读取预处理后的文件内容
             test_content = self._read_excel_to_text(processed_file)
-
+            print('输入数据')
+            print(test_content)
             test_row_count = len(df_test)
 
             print("\n" + "="*80)
@@ -774,15 +830,15 @@ CSV格式规范：
             print(f"提示词关键内容: 应用学习到的规则进行判断")
             print("-"*80)
 
-            messages.append({"role": "user", "content": quality_prompt})
+            thread_messages.append({"role": "user", "content": quality_prompt})
 
             print("正在调用AI模型判断工单性质...")
             start_time = time.time()
 
             # 调用AI模型进行判断
-            resp2 = self.client.chat.completions.create(
+            resp2 = client.chat.completions.create(
                 model=self.model,
-                messages=messages,
+                messages=thread_messages,
                 temperature=0.0,  # 完全确定性，提高准确率
                 max_tokens=24576  # 增加到24576，确保能输出完整结果（原16384）
             )
@@ -800,7 +856,9 @@ CSV格式规范：
             if quality_result.endswith('```'):
                 quality_result = quality_result[:-3]
             quality_result = quality_result.strip()
-            
+
+            print('输出结果')
+            print(quality_result)
             # 确保CSV有正确的表头
             lines = quality_result.split('\n')
             if lines and not lines[0].startswith('工单单号'):
@@ -1040,82 +1098,214 @@ B类（非质量工单）：
             print("="*80 + "\n")
             raise Exception(f"两阶段推理失败: {str(e)}")
 
-    def batch_process_quality_from_db(self, filename: str, training_excel: str, batch_size: int = 50) -> tuple:
-        """分批从数据库读取数据并进行质量工单判断
-        
+    import pandas as pd
+    from typing import Tuple, List, Dict, Optional
+    def batch_process_quality_from_db(self, filename: str, training_excel: str, batch_size: int = 50,
+                                      max_workers: int = 5) -> tuple:
+        """分批从数据库读取数据并进行质量工单判断（并行版）
+
         Args:
             filename (str): workorder_data表中的filename字段值
             training_excel (str): 训练数据Excel文件路径
             batch_size (int): 每批处理的记录数，默认50条
-            
+            max_workers (int): 最大并发线程数，默认5（根据AI/数据库能力调整）
+
         Returns:
             tuple: (合并后的CSV结果, 总token使用统计, 处理的总记录数)
         """
+        from modules.auth import db
+        from modules.excel.models import WorkorderData, WorkorderUselessdata1, WorkorderUselessdata2
+        from flask import current_app
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
         try:
-            from flask import current_app
-            from modules.auth import db
-            from modules.excel.models import WorkorderData, WorkorderUselessdata1, WorkorderUselessdata2
-            import tempfile
-            import os
-            
-            print("\n" + "="*80)
-            print("[分批质量工单检测] 开始处理")
-            print("="*80)
+            print("\n" + "=" * 80)
+            print("[分批质量工单检测] 开始处理（并行模式）")
+            print("=" * 80)
             print(f"文件名: {filename}")
             print(f"批次大小: {batch_size}条/批")
-            print("-"*80)
-            
-            # 第一步：学习规则（只需要执行一次）
+            print(f"最大并发数: {max_workers}")
+            print("-" * 80)
+
+            # 第一步：学习规则（只执行一次，串行）
             print("\n[步骤1] 学习质量判断规则...")
-            messages, rules, usage1 = self.learn_quality_rules(training_excel)
+            messages, rules, usage1 = self.learn_quality_rules(training_excel, True)
             print(f"✅ 规则学习完成")
-            print("-"*80)
-            
-            # 第二步：查询总记录数
+            print("-" * 80)
+
+            # 第二步：查询总记录数（串行）
             print("\n[步骤2] 查询数据库记录...")
             total_records = WorkorderData.query.filter_by(filename=filename).count()
             print(f"总记录数: {total_records}条")
-            
+
             if total_records == 0:
                 print("⚠️  警告: 未找到任何记录")
                 return "", {'strict_rules': 'n/a'}, 0
-            
+
             # 计算批次数
             total_batches = (total_records + batch_size - 1) // batch_size
             print(f"批次数: {total_batches}批")
-            print("-"*80)
-            
-            # 第三步：分批处理
-            all_results = []
-            header_line = None
-            total_token_usage = {'strict_rules': 'n/a'}
-            
+            print("-" * 80)
+
+            # 准备批次参数（需传递app对象，解决上下文问题）
+            app = current_app._get_current_object()  # 获取真实的app对象（非代理）
+            expected_columns = [
+                '工单单号', '工单性质', '判定依据', '保内保外', '批次入库日期', '安装日期',
+                '购机日期', '产品名称', '开发主体', '故障部位名称', '故障组', '故障类别',
+                '服务项目或故障现象', '维修方式', '旧件名称', '新件名称', '来电内容',
+                '现场诊断故障现象', '处理方案简述或备注'
+            ]
+            batch_params = []
             for batch_num in range(total_batches):
                 offset = batch_num * batch_size
-                limit = batch_size
-                
-                print(f"\n[批次 {batch_num + 1}/{total_batches}] 处理记录 {offset + 1} 至 {min(offset + limit, total_records)}")
-                
-                # 从数据库查询本批次记录
+                limit = min(batch_size, total_records - offset)
+                batch_params.append({
+                    'app': app,
+                    'filename': filename,
+                    'batch_num': batch_num,
+                    'offset': offset,
+                    'limit': limit,
+                    'expected_columns': expected_columns,
+                    'messages': messages
+                })
+
+
+            # 第三步：并行处理批次
+            all_results: List[str] = []
+            header_line: Optional[str] = None
+            total_token_usage: Dict = {'strict_rules': 'n/a'}
+            processed_records = 0  # 已处理的记录数
+
+            print(f"\n[步骤3] 启动{max_workers}个线程并行处理批次...")
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # 提交所有批次任务
+                future_to_batch = {
+                    executor.submit(self._process_single_batch, params): params
+                    for params in batch_params
+                }
+
+                # 遍历完成的任务，收集结果
+                for future in as_completed(future_to_batch):
+                    params = future_to_batch[future]
+                    batch_num = params['batch_num'] + 1
+                    total_batch = total_batches
+                    try:
+                        # 获取批次结果
+                        batch_header, batch_data, batch_usage, batch_count = future.result()
+                        processed_records += batch_count
+
+                        # 线程安全地处理表头（仅保留第一个批次的表头）
+                        with header_lock:
+                            if header_line is None and batch_header:
+                                header_line = batch_header
+
+                        # 收集数据行
+                        if batch_data:
+                            all_results.extend(batch_data)
+
+                        # 合并token使用（此处可根据实际需求累加，示例仅保留最后一个批次）
+                        if batch_usage:
+                            total_token_usage = batch_usage
+
+                        with print_lock:
+                            print(f"✅ 批次 {batch_num} 处理完成（累计{len(all_results)}/{total_records}行）")
+
+                    except Exception as e:
+                        with print_lock:
+                            print(f"❌ 批次 {batch_num} 处理失败：{str(e)}")
+                            print(f"错误堆栈:\n{traceback.format_exc()}")
+
+            # 第四步：合并所有批次结果
+            print("\n" + "=" * 80)
+            print(f"[步骤4] 合并批次结果，{len(all_results)}")
+            for item in all_results:
+                print(item + '\n')
+            print("=" * 80)
+
+            if header_line is None:
+                print("❌ 错误: 未获取到表头")
+                return "", total_token_usage, 0
+
+            # 组装完整CSV
+            final_csv = header_line + '\n' + '\n'.join(all_results)
+            final_row_count = len(all_results)
+
+            print(f"✅ 合并完成")
+            print(f"总数据行: {final_row_count}行")
+            print(f"已处理记录: {processed_records}条")
+            print(f"预期记录: {total_records}条")
+
+            if final_row_count != total_records:
+                print(f"⚠️  警告: 结果行数({final_row_count})与记录数({total_records})不一致")
+
+            print("=" * 80 + "\n")
+
+            return final_csv, total_token_usage, processed_records
+
+        except Exception as e:
+            import traceback
+            print(f"\n❌ 错误: 分批处理失败")
+            print(f"错误类型: {type(e).__name__}")
+            print(f"错误信息: {str(e)}")
+            return "", {'strict_rules': 'n/a', 'error': f"分批处理失败: {str(e)}"}, 0
+
+    def _process_single_batch(self, params: dict) -> Tuple[Optional[str], List[str], Optional[Dict], int]:
+        """处理单个批次的逻辑（供线程调用）
+
+        Returns:
+            Tuple: (表头行, 数据行列表, token使用统计, 处理的记录数)
+        """
+        app = params['app']
+        filename = params['filename']
+        batch_num = params['batch_num']
+        offset = params['offset']
+        limit = params['limit']
+        expected_columns = params['expected_columns']
+        messages = params['messages']
+
+        # 推送Flask app上下文（关键：解决多线程中current_app/db不可用的问题）
+        with app.app_context():
+            from modules.auth import db  # 重新导入db，确保线程内的上下文
+            from modules.excel.models import WorkorderData, WorkorderUselessdata1, WorkorderUselessdata2
+
+            batch_header: Optional[str] = None
+            batch_data: List[str] = []
+            batch_usage: Optional[Dict] = None
+            batch_count = 0
+            temp_excel_path = None
+
+            try:
+                # 计算批次范围
+                start = offset + 1
+                end = min(offset + limit, WorkorderData.query.filter_by(filename=filename).count())
+
+                with print_lock:
+                    print(f"\n[批次 {batch_num + 1}] 处理记录 {start} 至 {end}")
+
+                # 1. 从数据库查询本批次记录（每个线程独立的Session，自动提交/回滚）
                 records = WorkorderData.query.filter_by(filename=filename).offset(offset).limit(limit).all()
-                
+                print("数据库")
+                print(records)
+                batch_count = len(records)
+
                 if not records:
-                    print(f"  ⚠️  本批次无记录，跳过")
-                    continue
-                
-                print(f"  查询到 {len(records)} 条记录")
-                
-                # 构造19字段数据
-                expected_columns = ['工单单号','工单性质','判定依据','保内保外','批次入库日期','安装日期','购机日期','产品名称','开发主体','故障部位名称','故障组','故障类别','服务项目或故障现象','维修方式','旧件名称','新件名称','来电内容','现场诊断故障现象','处理方案简述或备注']
-                
+                    with print_lock:
+                        print(f"[批次 {batch_num + 1}] ⚠️  本批次无记录，跳过")
+                    return None, [], None, 0
+
+                with print_lock:
+                    print(f"[批次 {batch_num + 1}] 查询到 {batch_count} 条记录")
+
+                # 2. 构造19字段数据
+                def norm(v):
+                    return '' if v is None or v == 'None' or (isinstance(v, float) and pd.isna(v)) else str(v)
+
                 temp_data = []
                 for record in records:
+                    # 关联查询子表数据（每个记录独立查询，确保数据正确性）
                     u1 = WorkorderUselessdata1.query.filter_by(filename=filename, workAlone=record.workAlone).first()
                     u2 = WorkorderUselessdata2.query.filter_by(filename=filename, workAlone=record.workAlone).first()
-                    
-                    def norm(v):
-                        return '' if v is None or v == 'None' or (isinstance(v, float) and pd.isna(v)) else str(v)
-                    
+
                     row_data = {
                         '工单单号': norm(record.workAlone),
                         '工单性质': norm(record.workOrderNature),
@@ -1137,75 +1327,56 @@ B类（非质量工单）：
                         '现场诊断故障现象': norm(record.onsiteFaultPhenomenon),
                         '处理方案简述或备注': norm(record.remarks),
                     }
+
                     temp_data.append({k: row_data.get(k, '') for k in expected_columns})
-                
+
+                print("完成数据")
+                for item in temp_data:
+                    print(item)
+                    print('\n')
                 df_batch = pd.DataFrame(temp_data, columns=expected_columns)
-                print(f"  构造数据: {len(df_batch)}行 x {len(df_batch.columns)}列")
-                
-                # 创建临时Excel文件
+                with print_lock:
+                    print(f"[批次 {batch_num + 1}] 构造数据: {len(df_batch)}行 x {len(df_batch.columns)}列")
+
+                # 3. 创建临时Excel文件
                 with tempfile.NamedTemporaryFile(mode='wb', suffix='.xlsx', delete=False) as tmp:
                     temp_excel_path = tmp.name
                     df_batch.to_excel(temp_excel_path, index=False)
-                    print(f"  临时文件: {os.path.basename(temp_excel_path)}")
-                
-                try:
-                    # 调用AI判断（使用已学习的规则）
-                    print(f"  开始AI判断...")
-                    batch_result, batch_usage = self.apply_quality_rules(messages, temp_excel_path)
-                    print(f"  ✅ AI判断完成")
-                    
-                    # 解析结果
-                    result_lines = batch_result.strip().split('\n')
-                    
-                    # 保存表头（第一批时）
-                    if header_line is None and len(result_lines) > 0:
-                        header_line = result_lines[0]
-                        print(f"  表头: {header_line[:100]}...")
-                    
-                    # 添加数据行（跳过表头）
-                    data_lines = result_lines[1:] if len(result_lines) > 1 else []
-                    all_results.extend(data_lines)
-                    print(f"  结果行数: {len(data_lines)}行")
-                    
-                finally:
-                    # 清理临时文件
-                    if os.path.exists(temp_excel_path):
-                        os.remove(temp_excel_path)
-                        print(f"  临时文件已清理")
-                
-                print(f"  批次处理完成 ({len(all_results)}行已累积)")
-            
-            # 第四步：合并所有批次结果
-            print("\n" + "="*80)
-            print("[步骤3] 合并批次结果")
-            print("="*80)
-            
-            if header_line is None:
-                print("❌ 错误: 未获取到表头")
-                return "", total_token_usage, 0
-            
-            # 组装完整CSV
-            final_csv = header_line + '\n' + '\n'.join(all_results)
-            final_row_count = len(all_results)
-            
-            print(f"✅ 合并完成")
-            print(f"总数据行: {final_row_count}行")
-            print(f"预期记录: {total_records}条")
-            
-            if final_row_count != total_records:
-                print(f"⚠️  警告: 结果行数({final_row_count})与记录数({total_records})不一致")
-            
-            print("="*80 + "\n")
-            
-            return final_csv, total_token_usage, total_records
-            
-        except Exception as e:
-            print(f"\n❌ 错误: 分批处理失败")
-            print(f"错误类型: {type(e).__name__}")
-            print(f"错误信息: {str(e)}")
-            import traceback
-            print(f"错误堆栈:\n{traceback.format_exc()}")
-            raise Exception(f"分批处理失败: {str(e)}")
+                    with print_lock:
+                        print(f"[批次 {batch_num + 1}] 临时文件: {os.path.basename(temp_excel_path)}")
+
+                # 4. 调用AI判断（使用已学习的规则）
+                with print_lock:
+                    print(f"[批次 {batch_num + 1}] 开始AI判断...")
+
+                batch_result, batch_usage = self.apply_quality_rules(messages, temp_excel_path)
+
+                with print_lock:
+                    print(f"[批次 {batch_num + 1}] ✅ AI判断完成")
+
+                # 5. 解析结果
+                result_lines = batch_result.strip().split('\n')
+                if len(result_lines) > 0:
+                    batch_header = result_lines[0]
+                    # 数据行跳过表头
+                    batch_data = result_lines[1:] if len(result_lines) > 1 else []
+
+                with print_lock:
+                    print(f"[批次 {batch_num + 1}] 结果行数: {len(batch_data)}行")
+                # print('临时文件')
+                # print(temp_excel_path)
+                # print("原始结果")
+                # print(batch_result)
+                # print("结果")
+                # print(batch_data)
+                return batch_header, batch_data, batch_usage, batch_count
+
+            finally:
+                # 清理临时文件（确保无论是否异常都执行）
+                if temp_excel_path and os.path.exists(temp_excel_path):
+                    # os.remove(temp_excel_path)
+                    with print_lock:
+                        print(f"[批次 {batch_num + 1}] 临时文件已清理")
 
     def _check_empty_quality(self, csv_content):
         """

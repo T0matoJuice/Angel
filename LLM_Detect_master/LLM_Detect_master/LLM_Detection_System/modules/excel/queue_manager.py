@@ -207,8 +207,9 @@ class ExcelQueueManager:
                 
                 filename = task['filename']
                 filepath = task['filepath']
-                batch_size = task.get('batch_size', 50)
-                
+                batch_size = task.get('batch_size', 5)
+                max_workers = task.get('max_workers', 10)
+
                 # 更新当前任务
                 with self.lock:
                     self.current_task = filename
@@ -216,10 +217,12 @@ class ExcelQueueManager:
                 
                 print(f"🔍 开始检测Excel任务: {filename}")
                 print(f"📊 批量处理大小: {batch_size} 条/批")
-                
+                print(f"📊 最大线程数: {max_workers} ")
+
                 # 执行检测
                 start_time = time.time()
-                result = self._execute_inspection(filename, filepath, batch_size)
+                batch_size = 5
+                result = self._execute_inspection(filename, filepath, batch_size, max_workers)
                 duration = time.time() - start_time
                 
                 # 更新任务状态
@@ -246,7 +249,7 @@ class ExcelQueueManager:
         
         print("⏹️  Excel检测队列处理线程已退出")
     
-    def _execute_inspection(self, filename: str, filepath: str, batch_size: int) -> Dict:
+    def _execute_inspection(self, filename: str, filepath: str, batch_size: int, max_workers: int) -> Dict:
         """执行Excel检测并更新数据库
         
         Args:
@@ -279,7 +282,8 @@ class ExcelQueueManager:
                     quality_result, usage_stats, processed_count = self.processor.batch_process_quality_from_db(
                         filename=filename,
                         training_excel=training_file,
-                        batch_size=batch_size
+                        batch_size=batch_size,
+                        max_workers=max_workers
                     )
             else:
                 error_msg = "Flask应用上下文未初始化"
