@@ -178,7 +178,8 @@ class ManualJudgmentSyncer:
             "total": len(data_list),
             "updated": 0,
             "not_found": 0,
-            "errors": 0
+            "errors": 0,
+            "duplicate_count": 0  # 重复工单数量
         }
         
         for item in data_list:
@@ -186,19 +187,29 @@ class ManualJudgmentSyncer:
             work_order_nature = item["workOrderNature"]
             
             try:
-                # 查找对应的工单记录
-                workorder = WorkorderData.query.filter_by(workAlone=work_alone).first()
+                # 查找所有匹配的工单记录（使用.all()而不是.first()）
+                workorders = WorkorderData.query.filter_by(workAlone=work_alone).all()
                 
-                if workorder:
-                    # 更新 workOrderNature_correct 字段
-                    workorder.workOrderNature_correct = work_order_nature
-                    stats["updated"] += 1
+                if workorders:
+                    # 更新所有匹配的记录
+                    record_count = len(workorders)
+                    
+                    for workorder in workorders:
+                        workorder.workOrderNature_correct = work_order_nature
+                    
+                    stats["updated"] += record_count
+                    
+                    # 如果有重复记录，记录统计
+                    if record_count > 1:
+                        stats["duplicate_count"] += 1
+                        print(f"  ℹ 工单 {work_alone} 有 {record_count} 条记录，已全部更新")
                     
                     if stats["updated"] % 100 == 0:
                         print(f"  已更新 {stats['updated']} 条记录...")
                 else:
                     stats["not_found"] += 1
-                    print(f"  ⚠ 未找到工单: {work_alone}")
+                    # 只在详细模式下显示未找到的工单
+                    # print(f"  ⚠ 未找到工单: {work_alone}")
                     
             except Exception as e:
                 stats["errors"] += 1
@@ -248,6 +259,7 @@ class ManualJudgmentSyncer:
             print(f"成功更新:     {stats['updated']}")
             print(f"未找到工单:   {stats['not_found']}")
             print(f"更新失败:     {stats['errors']}")
+            print(f"重复工单数:   {stats['duplicate_count']} (这些工单在数据库中有多条记录)")
             print("=" * 60)
             
         except Exception as e:

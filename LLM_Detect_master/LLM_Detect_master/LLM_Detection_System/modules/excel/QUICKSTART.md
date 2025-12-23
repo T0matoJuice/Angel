@@ -8,6 +8,18 @@
 - ✅ 已配置数据库连接（`.env` 文件）
 - ✅ 可以连接内部VPN（生产环境）
 
+## 🎯 功能特性
+
+### ⏰ 自动定时同步（推荐）
+- **自动执行**：每天凌晨 01:00 自动同步前一天数据
+- **无需干预**：系统启动后自动运行，无需手动操作
+- **失败重试**：失败后下次定时任务会自动重试
+
+### 🔧 手动同步（按需使用）
+- **灵活控制**：可指定任意日期范围
+- **补充数据**：适用于补充历史数据或紧急同步
+- **API支持**：提供RESTful API接口
+
 ### 🚀 快速开始（3步完成）
 
 #### 第1步：添加数据库字段（仅首次）
@@ -81,6 +93,52 @@ python modules\excel\sync_manual_judgment.py --start-date 2025-01-01 --end-date 
 更新失败:     0
 ============================================================
 ```
+
+### 🎉 完成！系统已启动自动同步
+
+系统启动后，定时任务会自动运行，每天凌晨 01:00 自动同步前一天的数据。
+
+**查看启动日志**：
+```
+✅ Drawing检测队列管理器已初始化
+✅ Excel检测队列管理器已初始化
+✅ 定时同步任务调度器已初始化
+✅ 定时同步任务已启动，每天 01:00 自动同步前一天数据
+```
+
+## 📊 监控和管理
+
+### 查询同步状态
+
+```bash
+# 查看上次同步时间和结果
+curl http://localhost:5000/api/sync/status
+```
+
+### 手动触发同步（可选）
+
+```bash
+# 同步昨天的数据
+curl -X POST http://localhost:5000/api/sync/trigger \
+  -H "Content-Type: application/json"
+
+# 同步指定日期
+curl -X POST http://localhost:5000/api/sync/trigger \
+  -H "Content-Type: application/json" \
+  -d '{"start_date": "2025-01-20", "end_date": "2025-01-22"}'
+```
+
+### 修改执行时间（可选）
+
+编辑 `modules/common/config.py`：
+
+```python
+# 修改为每天凌晨3点执行
+app.config['AUTO_SYNC_HOUR'] = 3
+app.config['AUTO_SYNC_MINUTE'] = 0
+```
+
+重启应用使配置生效。
 
 ### 📁 文件说明
 
