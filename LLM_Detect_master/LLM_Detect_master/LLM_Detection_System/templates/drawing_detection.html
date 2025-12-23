@@ -807,12 +807,20 @@
                     <span class="error-message" id="versionError"></span>
                 </div>
 
-                <!-- 图纸类型输入框 -->
+                <!-- 图纸类型下拉选择框 -->
                 <div class="form-group">
-                    <label for="drawingTypeInput">
+                    <label for="drawingTypeSelect">
                         <span class="required-mark">*</span> 图纸类型
                     </label>
-                    <input type="text" id="drawingTypeInput" class="form-input" placeholder="请输入图纸类型">
+                    <select id="drawingTypeSelect" class="form-input">
+                        <option value="">请选择图纸类型</option>
+                        <option value="金属件">金属件</option>
+                        <option value="塑胶件">塑胶件</option>
+                        <option value="电器件">电器件</option>
+                        <option value="总成图">总成图</option>
+                        <option value="水路图">水路图</option>
+                        <option value="爆炸图">爆炸图</option>
+                    </select>
                     <span class="error-message" id="drawingTypeError"></span>
                 </div>
 
@@ -868,6 +876,7 @@
             document.getElementById('selectedFileName').classList.remove('has-file');
             document.getElementById('checkerNameInput').value = '';
             document.getElementById('versionInput').value = '';
+            document.getElementById('drawingTypeSelect').value = '';
             clearErrors();
         }
 
@@ -880,10 +889,14 @@
 
         // 清除错误提示
         function clearErrors() {
+            document.getElementById('drawingNumberError').textContent = '';
             document.getElementById('checkerNameError').textContent = '';
             document.getElementById('versionError').textContent = '';
+            document.getElementById('drawingTypeError').textContent = '';
+            document.getElementById('drawingNumberInput').classList.remove('error');
             document.getElementById('checkerNameInput').classList.remove('error');
             document.getElementById('versionInput').classList.remove('error');
+            document.getElementById('drawingTypeSelect').classList.remove('error');
         }
 
         // 验证表单
@@ -922,10 +935,10 @@
             }
 
             // 验证图纸类型
-            const drawingType = document.getElementById('drawingTypeInput').value.trim();
+            const drawingType = document.getElementById('drawingTypeSelect').value;
             if (!drawingType) {
-                document.getElementById('drawingTypeError').textContent = '请输入图纸类型';
-                document.getElementById('drawingTypeInput').classList.add('error');
+                document.getElementById('drawingTypeError').textContent = '请选择图纸类型';
+                document.getElementById('drawingTypeSelect').classList.add('error');
                 isValid = false;
             }
 
@@ -941,7 +954,7 @@
             const engineeringDrawingId = document.getElementById('drawingNumberInput').value.trim();
             const checkerName = document.getElementById('checkerNameInput').value.trim();
             const version = document.getElementById('versionInput').value.trim();
-            const drawingType = document.getElementById('drawingTypeInput').value.trim();
+            const drawingType = document.getElementById('drawingTypeSelect').value;
 
             // 关闭模态框
             closeUploadModal();
