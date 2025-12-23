@@ -55,7 +55,8 @@ def test_sync_logic():
             "total": len(mock_data),
             "updated": 0,
             "not_found": 0,
-            "errors": 0
+            "errors": 0,
+            "duplicate_count": 0
         }
         
         print("\n开始测试更新逻辑...")
@@ -65,18 +66,28 @@ def test_sync_logic():
             work_order_nature = item["workOrderNature"]
             
             try:
-                # 查找对应的工单记录
-                workorder = WorkorderData.query.filter_by(workAlone=work_alone).first()
+                # 查找所有匹配的工单记录（测试重复记录处理）
+                workorders = WorkorderData.query.filter_by(workAlone=work_alone).all()
                 
-                if workorder:
-                    print(f"\n✓ 找到工单: {work_alone}")
-                    print(f"  当前AI判断: {workorder.workOrderNature}")
-                    print(f"  人工判断: {work_order_nature}")
+                if workorders:
+                    record_count = len(workorders)
+                    print(f"\n✓ 找到工单: {work_alone} (共 {record_count} 条记录)")
+                    
+                    for idx, workorder in enumerate(workorders, 1):
+                        print(f"  记录 {idx}:")
+                        print(f"    当前AI判断: {workorder.workOrderNature}")
+                        print(f"    人工判断: {work_order_nature}")
+                        print(f"    → 将更新 workOrderNature_correct 为: {work_order_nature}")
                     
                     # 模拟更新（不实际提交）
-                    # workorder.workOrderNature_correct = work_order_nature
-                    stats["updated"] += 1
-                    print(f"  → 将更新 workOrderNature_correct 为: {work_order_nature}")
+                    # for workorder in workorders:
+                    #     workorder.workOrderNature_correct = work_order_nature
+                    
+                    stats["updated"] += record_count
+                    
+                    if record_count > 1:
+                        stats["duplicate_count"] += 1
+                        print(f"  ℹ 这是一个重复工单，将更新所有 {record_count} 条记录")
                 else:
                     stats["not_found"] += 1
                     print(f"\n⚠ 未找到工单: {work_alone}")
@@ -97,6 +108,7 @@ def test_sync_logic():
         print(f"可以更新:     {stats['updated']}")
         print(f"未找到工单:   {stats['not_found']}")
         print(f"处理失败:     {stats['errors']}")
+        print(f"重复工单数:   {stats['duplicate_count']} (这些工单在数据库中有多条记录)")
         print("=" * 60)
         print("\n注意: 这是测试模式，未实际修改数据库")
         print("=" * 60)
