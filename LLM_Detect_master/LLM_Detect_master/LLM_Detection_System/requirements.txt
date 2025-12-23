@@ -37,3 +37,6 @@ cryptography>=41.0.0
 
 # API频率限制
 flask-limiter>=3.5.0
+
+# 定时任务调度
+apscheduler>=3.10.0

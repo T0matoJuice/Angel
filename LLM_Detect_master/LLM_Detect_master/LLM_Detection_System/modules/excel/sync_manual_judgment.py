@@ -164,7 +164,7 @@ class ManualJudgmentSyncer:
     
     def update_database(self, data_list):
         """
-        更新数据库中的 workOrderNature_correct 字段
+        更新数据库中的 workOrderNature_correct 字段（优化版）
         
         Args:
             data_list (list): 工单数据列表
@@ -172,44 +172,123 @@ class ManualJudgmentSyncer:
         Returns:
             dict: 更新统计信息
         """
+        import sys
+        import time
+        from datetime import datetime, timedelta
+        
         print("\n正在更新数据库...")
+        print(f"API返回数据: {len(data_list)} 条")
+        sys.stdout.flush()  # 强制刷新输出
         
         stats = {
             "total": len(data_list),
             "updated": 0,
             "not_found": 0,
-            "errors": 0
+            "errors": 0,
+            "duplicate_count": 0,
+            "api_records": len(data_list)  # API返回的记录数
         }
         
+        # 记录开始时间
+        start_time = time.time()
+        last_progress_time = start_time
+        
+        # 批量处理：先构建工单号到人工判断的映射
+        print("正在构建工单映射...")
+        sys.stdout.flush()
+        
+        workorder_map = {}
         for item in data_list:
             work_alone = item["workAlone"]
             work_order_nature = item["workOrderNature"]
+            workorder_map[work_alone] = work_order_nature
+        
+        print(f"✓ 映射构建完成，共 {len(workorder_map)} 个唯一工单号")
+        sys.stdout.flush()
+        
+        # 批量查询数据库中存在的工单（性能优化）
+        print("正在查询数据库中的工单...")
+        sys.stdout.flush()
+        
+        unique_work_alones = list(workorder_map.keys())
+        batch_size = 1000  # 每次查询1000个工单号
+        all_db_records = []
+        
+        for i in range(0, len(unique_work_alones), batch_size):
+            batch_work_alones = unique_work_alones[i:i+batch_size]
+            batch_records = WorkorderData.query.filter(
+                WorkorderData.workAlone.in_(batch_work_alones)
+            ).all()
+            all_db_records.extend(batch_records)
             
-            try:
-                # 查找对应的工单记录
-                workorder = WorkorderData.query.filter_by(workAlone=work_alone).first()
-                
-                if workorder:
-                    # 更新 workOrderNature_correct 字段
-                    workorder.workOrderNature_correct = work_order_nature
-                    stats["updated"] += 1
+            # 显示查询进度
+            progress = min(i + batch_size, len(unique_work_alones))
+            percent = (progress / len(unique_work_alones)) * 100
+            print(f"  查询进度: {progress}/{len(unique_work_alones)} ({percent:.1f}%)")
+            sys.stdout.flush()
+        
+        print(f"✓ 数据库查询完成，找到 {len(all_db_records)} 条匹配记录")
+        sys.stdout.flush()
+        
+        # 统计重复工单
+        workalone_count = {}
+        for record in all_db_records:
+            workalone_count[record.workAlone] = workalone_count.get(record.workAlone, 0) + 1
+        
+        duplicate_workorders = {k: v for k, v in workalone_count.items() if v > 1}
+        if duplicate_workorders:
+            print(f"发现 {len(duplicate_workorders)} 个重复工单（共 {sum(duplicate_workorders.values())} 条记录）")
+            sys.stdout.flush()
+        
+        # 更新数据库记录
+        print("\n开始更新记录...")
+        sys.stdout.flush()
+        
+        updated_count = 0
+        for idx, record in enumerate(all_db_records, 1):
+            work_alone = record.workAlone
+            
+            if work_alone in workorder_map:
+                try:
+                    # 更新字段
+                    record.workOrderNature_correct = workorder_map[work_alone]
+                    updated_count += 1
                     
-                    if stats["updated"] % 100 == 0:
-                        print(f"  已更新 {stats['updated']} 条记录...")
-                else:
-                    stats["not_found"] += 1
-                    print(f"  ⚠ 未找到工单: {work_alone}")
-                    
-            except Exception as e:
-                stats["errors"] += 1
-                print(f"  ✗ 更新失败 [{work_alone}]: {str(e)}")
+                    # 每100条显示一次进度
+                    if updated_count % 100 == 0:
+                        elapsed = time.time() - start_time
+                        percent = (idx / len(all_db_records)) * 100
+                        speed = updated_count / elapsed if elapsed > 0 else 0
+                        remaining = (len(all_db_records) - idx) / speed if speed > 0 else 0
+                        
+                        print(f"  进度: {idx}/{len(all_db_records)} ({percent:.1f}%) | "
+                              f"已更新: {updated_count} | "
+                              f"速度: {speed:.1f}条/秒 | "
+                              f"预计剩余: {int(remaining)}秒")
+                        sys.stdout.flush()
+                        
+                except Exception as e:
+                    stats["errors"] += 1
+                    print(f"  ✗ 更新失败 [{work_alone}]: {str(e)}")
+                    sys.stdout.flush()
+        
+        stats["updated"] = updated_count
+        stats["duplicate_count"] = len(duplicate_workorders)
+        stats["not_found"] = len(data_list) - len(all_db_records)
         
         # 提交所有更改
+        print("\n正在提交数据库更改...")
+        sys.stdout.flush()
+        
         try:
             db.session.commit()
-            print(f"\n✓ 数据库更新完成")
+            elapsed = time.time() - start_time
+            print(f"✓ 数据库更新完成（耗时: {elapsed:.1f}秒）")
+            sys.stdout.flush()
         except Exception as e:
             db.session.rollback()
+            print(f"✗ 提交失败，已回滚: {str(e)}")
+            sys.stdout.flush()
             raise Exception(f"提交数据库更改失败: {str(e)}")
         
         return stats
@@ -248,6 +327,7 @@ class ManualJudgmentSyncer:
             print(f"成功更新:     {stats['updated']}")
             print(f"未找到工单:   {stats['not_found']}")
             print(f"更新失败:     {stats['errors']}")
+            print(f"重复工单数:   {stats['duplicate_count']} (这些工单在数据库中有多条记录)")
             print("=" * 60)
             
         except Exception as e:
