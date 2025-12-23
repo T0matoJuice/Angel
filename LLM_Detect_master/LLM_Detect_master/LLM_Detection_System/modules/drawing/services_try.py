@@ -204,7 +204,7 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
         if drawing_type in ["爆炸图", "水路图"]:
             cleaned_result = '''**第3条检测结果：**
 - 检测项目：关键尺寸识别
-- 检测结果：不符合
+- 检测结果：符合
 - 发现内容：无
 - 位置描述：无
 - 符合/不符合原因：图纸类型为水路图或爆炸图，该类图纸无尺寸
@@ -265,7 +265,7 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
 
         # 检测5: 根据图纸类型选择prompt文件
         print(f"\n🔍 [5/12] 进行人员参数检查...")
-        if drawing_type in ["钣金件", "塑胶件", "电器件", "总成图"]:
+        if drawing_type in ["钣金件", "塑胶件", "电器件", "总成图", "金属件"]:
             cleaned_result = '''**第5条检测结果：**
 - 检测项目：人员参数检查
 - 检测结果：符合
@@ -411,19 +411,27 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
             if material_content_match:
                 material_content = material_content_match.group(1).strip()
 
-                # 爆炸图或水路图：发现内容不是"/"则不符合
-                if drawing_type in ["爆炸图", "水路图"] and material_content != "/":
-                    cleaned_result = re.sub(r'(- 检测结果[：:]\s*)符合', r'\1不符合', cleaned_result)
-                    cleaned_result = re.sub(r'(- 符合/不符合原因[：:]\s*)[^\n]+', r'\1图纸中材料信息不为"/"',
-                                            cleaned_result)
-                    cleaned_result = re.sub(r'(- 修改建议[：:]\s*)[^\n]+', r'\1修改材料信息', cleaned_result)
-
-                # 非爆炸图/水路图：发现内容是"/"则不符合
-                elif drawing_type not in ["爆炸图", "水路图"] and material_content == "/":
+                # 塑胶件/钣金件的图纸：填写"/"即为不符合，其余情况不改变判定结果
+                if drawing_type in ["塑胶件", "钣金件", "金属件"] and material_content == "/":
                     cleaned_result = re.sub(r'(- 检测结果[：:]\s*)符合', r'\1不符合', cleaned_result)
                     cleaned_result = re.sub(r'(- 符合/不符合原因[：:]\s*)[^\n]+', r'\1图纸中材料信息为"/"',
                                             cleaned_result)
                     cleaned_result = re.sub(r'(- 修改建议[：:]\s*)[^\n]+', r'\1修改材料信息', cleaned_result)
+
+                # 非塑胶件/钣金件的图纸：必须填写"/"为符合，其余情况为不符合
+                elif drawing_type not in ["塑胶件", "钣金件", "金属件"]:
+                    if material_content == "/":
+                        # 改为符合
+                        cleaned_result = re.sub(r'(- 检测结果[：:]\s*)不符合', r'\1符合', cleaned_result)
+                        cleaned_result = re.sub(r'(- 符合/不符合原因[：:]\s*)[^\n]+', r'\1图纸中材料信息为"/"',
+                                                cleaned_result)
+                        cleaned_result = re.sub(r'(- 修改建议[：:]\s*)[^\n]+', r'\1无', cleaned_result)
+                    else:
+                        # 改为不符合
+                        cleaned_result = re.sub(r'(- 检测结果[：:]\s*)符合', r'\1不符合', cleaned_result)
+                        cleaned_result = re.sub(r'(- 符合/不符合原因[：:]\s*)[^\n]+', r'\1图纸中材料信息不为"/"',
+                                                cleaned_result)
+                        cleaned_result = re.sub(r'(- 修改建议[：:]\s*)[^\n]+', r'\1修改材料信息', cleaned_result)
 
             all_result += f"{cleaned_result.strip()}\n\n"
             if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
@@ -450,43 +458,99 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
             print(f"✅ [11/12] prompt_11.txt 检测完成")
 
         # 检测12: prompt_12.txt（重量信息检查，需后处理结果）
-        prompt_file = prompts_dir / "prompt_12.txt"
-        if prompt_file.exists():
-            print(f"\n🔍 [12/12] 使用 prompt_12.txt 进行检测...")
-            with open(prompt_file, 'r', encoding='utf-8') as f:
-                prompt_content = f.read()
-            messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
-                                                                                                "image_url": {
-                                                                                                    "url": f"file://{png_file_path}"}}]}]
-            completion = client.chat.completions.create(model=model_name, messages=messages, temperature=0.6,
-                                                        max_tokens=8192)
-            result = completion.choices[0].message.content
-            cleaned_result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
-            cleaned_result = re.sub(r'</?answer>', '', cleaned_result)
+        print(f"\n🔍 [12/12] 使用 prompt_12.txt 进行检测...")
 
-            # 后处理：根据图纸类型和发现内容修改检测结果
-            weight_content_match = re.search(r'- 发现内容[：:]\s*(.+)', cleaned_result)
-            if weight_content_match:
-                weight_content = weight_content_match.group(1).strip()
-
-                # 爆炸图或水路图：发现内容不是"/"则不符合
-                if drawing_type in ["爆炸图", "水路图"] and weight_content != "/":
-                    cleaned_result = re.sub(r'(- 检测结果[：:]\s*)符合', r'\1不符合', cleaned_result)
-                    cleaned_result = re.sub(r'(- 符合/不符合原因[：:]\s*)[^\n]+', r'\1图纸中重量信息不为"/"',
-                                            cleaned_result)
-                    cleaned_result = re.sub(r'(- 修改建议[：:]\s*)[^\n]+', r'\1修改重量信息', cleaned_result)
-
-                # 非爆炸图/水路图：发现内容是"/"则不符合
-                elif drawing_type not in ["爆炸图", "水路图"] and weight_content == "/":
-                    cleaned_result = re.sub(r'(- 检测结果[：:]\s*)符合', r'\1不符合', cleaned_result)
-                    cleaned_result = re.sub(r'(- 符合/不符合原因[：:]\s*)[^\n]+', r'\1图纸中重量信息为"/"',
-                                            cleaned_result)
-                    cleaned_result = re.sub(r'(- 修改建议[：:]\s*)[^\n]+', r'\1修改重量信息', cleaned_result)
-
+        # 其余图纸类型（非塑胶件、钣金件、金属件、爆炸图、水路图）直接写死结果
+        if drawing_type not in ["塑胶件", "钣金件", "金属件", "爆炸图", "水路图"]:
+            cleaned_result = '''**第12条检测结果：**
+- 检测项目：重量信息检查
+- 检测结果：符合
+- 发现内容：无
+- 位置描述：无
+- 符合/不符合原因：图纸类型为电器件或总成图，该类图纸直接判定为符合
+- 修改建议：无'''
             all_result += f"{cleaned_result.strip()}\n\n"
             if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
                 non_conforming_count += 1
-            print(f"✅ [12/12] prompt_12.txt 检测完成")
+            print(f"✅ [12/12] prompt_12.txt 检测完成（图纸类型为{drawing_type}，直接判定为符合）")
+        else:
+            # 需要调用模型检测的图纸类型
+            prompt_file = prompts_dir / "prompt_12.txt"
+            if prompt_file.exists():
+                with open(prompt_file, 'r', encoding='utf-8') as f:
+                    prompt_content = f.read()
+                messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
+                                                                                                    "image_url": {
+                                                                                                        "url": f"file://{png_file_path}"}}]}]
+                completion = client.chat.completions.create(model=model_name, messages=messages, temperature=0.6,
+                                                            max_tokens=8192)
+                result = completion.choices[0].message.content
+                cleaned_result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
+                cleaned_result = re.sub(r'</?answer>', '', cleaned_result)
+
+                # 后处理：根据图纸类型和发现内容修改检测结果
+                weight_content_match = re.search(r'- 发现内容[：:]\s*(.+)', cleaned_result)
+                if weight_content_match:
+                    weight_content = weight_content_match.group(1).strip()
+
+                    # 塑胶件/钣金件/金属件：重量不可为"/"且数值>0才算符合
+                    if drawing_type in ["塑胶件", "钣金件", "金属件"]:
+                        if weight_content == "/":
+                            # 填写"/"为不符合
+                            cleaned_result = re.sub(r'(- 检测结果[：:]\s*)符合', r'\1不符合', cleaned_result)
+                            cleaned_result = re.sub(r'(- 符合/不符合原因[：:]\s*)[^\n]+',
+                                                    r'\1图纸中重量信息为"/"，需填写数值', cleaned_result)
+                            cleaned_result = re.sub(r'(- 修改建议[：:]\s*)[^\n]+', r'\1修改重量信息为实际数值',
+                                                    cleaned_result)
+                        else:
+                            # 尝试提取数值并判断是否>0
+                            try:
+                                # 尝试从weight_content中提取数值（可能包含单位）
+                                number_match = re.search(r'([-+]?\d*\.?\d+)', weight_content)
+                                if number_match:
+                                    weight_value = float(number_match.group(1))
+                                    if weight_value <= 0:
+                                        # 数值<=0为不符合
+                                        cleaned_result = re.sub(r'(- 检测结果[：:]\s*)符合', r'\1不符合', cleaned_result)
+                                        cleaned_result = re.sub(r'(- 符合/不符合原因[：:]\s*)[^\n]+',
+                                                                r'\1图纸中重量信息数值<=0', cleaned_result)
+                                        cleaned_result = re.sub(r'(- 修改建议[：:]\s*)[^\n]+',
+                                                                r'\1修改重量信息为大于0的数值', cleaned_result)
+                                    # 如果>0，保持模型原判定结果不变
+                                else:
+                                    # 无法提取数值，判定为不符合
+                                    cleaned_result = re.sub(r'(- 检测结果[：:]\s*)符合', r'\1不符合', cleaned_result)
+                                    cleaned_result = re.sub(r'(- 符合/不符合原因[：:]\s*)[^\n]+',
+                                                            r'\1图纸中重量信息格式不正确', cleaned_result)
+                                    cleaned_result = re.sub(r'(- 修改建议[：:]\s*)[^\n]+', r'\1修改重量信息为有效数值',
+                                                            cleaned_result)
+                            except:
+                                # 异常情况，判定为不符合
+                                cleaned_result = re.sub(r'(- 检测结果[：:]\s*)符合', r'\1不符合', cleaned_result)
+                                cleaned_result = re.sub(r'(- 符合/不符合原因[：:]\s*)[^\n]+',
+                                                        r'\1图纸中重量信息无法识别', cleaned_result)
+                                cleaned_result = re.sub(r'(- 修改建议[：:]\s*)[^\n]+', r'\1修改重量信息', cleaned_result)
+
+                    # 爆炸图/水路图：重量填为"/"才算符合
+                    elif drawing_type in ["爆炸图", "水路图"]:
+                        if weight_content == "/":
+                            # 改为符合
+                            cleaned_result = re.sub(r'(- 检测结果[：:]\s*)不符合', r'\1符合', cleaned_result)
+                            cleaned_result = re.sub(r'(- 符合/不符合原因[：:]\s*)[^\n]+', r'\1图纸中重量信息为"/"',
+                                                    cleaned_result)
+                            cleaned_result = re.sub(r'(- 修改建议[：:]\s*)[^\n]+', r'\1无', cleaned_result)
+                        else:
+                            # 改为不符合
+                            cleaned_result = re.sub(r'(- 检测结果[：:]\s*)符合', r'\1不符合', cleaned_result)
+                            cleaned_result = re.sub(r'(- 符合/不符合原因[：:]\s*)[^\n]+', r'\1图纸中重量信息不为"/"',
+                                                    cleaned_result)
+                            cleaned_result = re.sub(r'(- 修改建议[：:]\s*)[^\n]+', r'\1修改重量信息为"/"',
+                                                    cleaned_result)
+
+                all_result += f"{cleaned_result.strip()}\n\n"
+                if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
+                    non_conforming_count += 1
+                print(f"✅ [12/12] prompt_12.txt 检测完成")
 
         print("\n🧹 已清理所有 <think> 标签内容。")
 

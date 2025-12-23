@@ -267,8 +267,9 @@ class InspectionQueueManager:
                     import traceback
                     traceback.print_exc()
 
-            # result = self.upload_result_to_auth(filepath, timestamp, db_id, record_id, status_value)
-            # print(result)
+            # 获取检测结论
+            conclusion = result.get('conclusion', '未知')
+            result = self.upload_result_to_auth(filepath, timestamp, db_id, engineering_id, status_value, conclusion)
 
             return {'success': True, 'result': result}
 
@@ -279,7 +280,7 @@ class InspectionQueueManager:
 
     @staticmethod
     def upload_result_to_auth(local_file_path: str, detectionTime: str, db_id: str, engineering_id: str,
-                              status_value: str) -> str:
+                              status_value: str, conclusion: str) -> str:
 
         remote_url = "http://plmtest.angelgroup.com.cn:8090/Windchill/ptc1/aiInterface/customUpload/sendEpmInfo"
         username = "plmSysInt"
@@ -306,17 +307,18 @@ class InspectionQueueManager:
                               "application/octet-stream")}
 
             # 根据status_value设置message
-            if status_value == 'error':
+            if status_value == 'failed':
                 message_text = "系统识别失败，请重新上传"
             else:
-                message_text = "无异常现象"
+                message_text = ""
 
             data = {
                 # id 使用 drawing_data 主键，epmDocNumber 使用 engineering_drawing_id
                 "id": db_id,
                 "epmDocNumber": engineering_id,
+                "detectionResults": conclusion,
                 # 根据状态决定 message
-                "type": status_value,
+                "type": 'success' if status_value == 'completed' else status_value,
                 "message": message_text,
                 "detectionTime": detectionTime
             }
