@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <title>AI检测问题汇总</title>
@@ -12,17 +13,20 @@
             --radius: 12px;
             --shadow: 0 8px 32px rgba(0, 0, 0, .1);
         }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
+
         body {
             font-family: 'Microsoft YaHei', Arial, sans-serif;
             background: linear-gradient(135deg, var(--grad-left) 0%, var(--grad-right) 100%);
             min-height: 100vh;
             padding: 20px;
         }
+
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -30,6 +34,34 @@
             flex-direction: column;
             gap: 20px;
         }
+
+        /* 返回按钮样式 */
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--grad-left);
+            text-decoration: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: .3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .1);
+        }
+
+        .back-btn:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
         /* 顶部操作区 */
         .header {
             background: var(--card-bg);
@@ -41,11 +73,13 @@
             align-items: center;
             gap: 15px;
         }
+
         .header .title {
             font-size: 24px;
             color: #333;
             margin-right: auto;
         }
+
         .btn {
             border: none;
             border-radius: 8px;
@@ -55,31 +89,38 @@
             cursor: pointer;
             transition: .3s;
         }
+
         .btn-primary {
             background: linear-gradient(45deg, var(--grad-left), var(--grad-right));
             color: #fff;
         }
+
         .btn-secondary {
             background: #f8f9fa;
             color: #333;
             border: 1px solid #ddd;
         }
+
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
         }
+
         .date-range {
             display: flex;
             align-items: center;
             gap: 8px;
         }
+
         .date-range input {
             padding: 6px 10px;
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 14px;
         }
-        select, input[type="text"] {
+
+        select,
+        input[type="text"] {
             padding: 6px 10px;
             border: 1px solid #ccc;
             border-radius: 6px;
@@ -92,6 +133,7 @@
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
+
         .chart-card {
             background: var(--card-bg);
             border-radius: var(--radius);
@@ -100,16 +142,19 @@
             display: flex;
             flex-direction: column;
         }
+
         .chart-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
         }
+
         .chart-title {
             font-size: 18px;
             color: #333;
         }
+
         #chartContainer {
             height: 400px;
             position: relative;
@@ -121,11 +166,14 @@
             border-collapse: collapse;
             font-size: 14px;
         }
-        .stat-table th, .stat-table td {
+
+        .stat-table th,
+        .stat-table td {
             padding: 10px 12px;
             border-bottom: 1px solid #e9ecef;
             text-align: left;
         }
+
         .stat-table th {
             background: #f8f9fa;
             font-weight: 600;
@@ -138,6 +186,7 @@
             box-shadow: var(--shadow);
             padding: 25px;
         }
+
         .table-card .section-title {
             font-size: 18px;
             margin-bottom: 15px;
@@ -146,23 +195,29 @@
             justify-content: space-between;
             align-items: center;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
         }
-        th, td {
+
+        th,
+        td {
             padding: 10px 12px;
             border-bottom: 1px solid #e9ecef;
             text-align: left;
         }
+
         th {
             background: #f8f9fa;
             font-weight: 600;
         }
+
         tr:hover {
             background: #f8f9ff;
         }
+
         .badge {
             display: inline-block;
             padding: 4px 10px;
@@ -170,29 +225,115 @@
             font-size: 12px;
             font-weight: 600;
         }
+
         .badge-尺寸错误 {
             background: #ffe1e1;
             color: #d80000;
         }
+
         .badge-版本错误 {
             background: #fff3cd;
             color: #856404;
         }
+
         .badge-图框错误 {
             background: #d1ecf1;
             color: #0c5460;
         }
+
         .badge-缺少单一材质重量 {
             background: #d4edda;
             color: #155724;
         }
+
         .badge-缺少重点尺寸 {
             background: #f8d7da;
             color: #721c24;
         }
+
         .badge-缺少未注公差 {
             background: #e2e3e5;
             color: #383d41;
+        }
+
+        /* 文件名/物料名称样式 - 限制宽度并显示省略号 */
+        .filename-cell {
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 页面大小选择器 */
+        .page-size-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-size-control label {
+            font-size: 13px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .page-size-select {
+            height: 32px;
+            padding: 0 8px;
+            border: 1px solid #d0d0d0;
+            border-radius: 4px;
+            font-size: 13px;
+            background: white;
+        }
+
+        /* 分页控制 */
+        .pagination-control {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 25px;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .pagination-info {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .pagination-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .pagination-btn {
+            padding: 6px 12px;
+            font-size: 13px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-btn.active {
+            background: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
         }
 
         /* 响应式 */
@@ -201,6 +342,7 @@
                 flex-direction: column;
                 align-items: stretch;
             }
+
             .chart-row {
                 grid-template-columns: 1fr;
             }
@@ -208,319 +350,537 @@
     </style>
     <base target="_blank">
 </head>
+
 <body>
-<div class="container">
-    <!-- 顶部操作区 -->
-    <div class="header">
-        <div class="title">AI检测问题汇总</div>
+    <div class="container">
+        <!-- 顶部操作区 -->
+        <div class="header">
+            <a href="/drawing" class="back-btn" target="_self" rel="noopener">
+                <span>←</span>
+                <span>返回制图检测系统</span>
+            </a>
+            <div class="title">AI检测问题汇总</div>
 
-        <div class="date-range">
-            <span>日期范围：</span>
-            <input type="date" id="startDate" value="2025-06-01">
-            <span>-</span>
-            <input type="date" id="endDate" value="2025-10-31">
+            <div class="date-range">
+                <span>日期范围：</span>
+                <input type="date" id="startDate">
+                <span>-</span>
+                <input type="date" id="endDate">
+            </div>
+
+            <select id="creatorFilter">
+                <option value="">创建人筛选</option>
+                <option value="张三">张三</option>
+                <option value="李四">李四</option>
+                <option value="王五">王五</option>
+            </select>
+
+            <select id="materialFilter">
+                <option value="">物料筛选</option>
+                <option value="塑胶件">塑胶件</option>
+                <option value="钣金件">钣金件</option>
+                <option value="机加件">机加件</option>
+            </select>
+
+            <button class="btn btn-primary" onclick="handleQuery()">🔍 查询</button>
+            <button class="btn btn-secondary" onclick="handleReset()">重置</button>
+            <a class="btn btn-primary" href="#" download="ai_issue.csv">📥 下载</a>
         </div>
 
-        <select id="creatorFilter">
-            <option value="">创建人筛选</option>
-            <option value="张三">张三</option>
-            <option value="李四">李四</option>
-            <option value="王五">王五</option>
-        </select>
-
-        <select id="materialFilter">
-            <option value="">物料筛选</option>
-            <option value="塑胶件">塑胶件</option>
-            <option value="钣金件">钣金件</option>
-            <option value="机加件">机加件</option>
-        </select>
-
-        <button class="btn btn-primary" onclick="handleQuery()">🔍 查询</button>
-        <button class="btn btn-secondary" onclick="handleReset()">重置</button>
-        <a class="btn btn-primary" href="#" download="ai_issue.csv">📥 下载</a>
-    </div>
-
-    <!-- 图表区 -->
-    <div class="chart-row">
-        <!-- 左侧统计表格 -->
-        <div class="chart-card">
-            <div class="chart-header">
-                <span class="chart-title">统计信息</span>
+        <!-- 图表区 -->
+        <div class="chart-row">
+            <!-- 左侧统计表格 -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <span class="chart-title">统计信息</span>
+                </div>
+                <table class="stat-table">
+                    <tr>
+                        <th>日期范围</th>
+                        <td id="dateRangeText">2025-06 至 2025-10</td>
+                    </tr>
+                    <tr>
+                        <th>检测图纸总数</th>
+                        <td>1000</td>
+                    </tr>
+                    <tr>
+                        <th>问题总数</th>
+                        <td>400</td>
+                    </tr>
+                    <tr>
+                        <th>问题类型</th>
+                        <th>问题数量</th>
+                    </tr>
+                    <tr>
+                        <td>尺寸错误</td>
+                        <td>50</td>
+                    </tr>
+                    <tr>
+                        <td>版本错误</td>
+                        <td>50</td>
+                    </tr>
+                    <tr>
+                        <td>图标错误</td>
+                        <td>50</td>
+                    </tr>
+                    <tr>
+                        <td>缺少单一材质重量</td>
+                        <td>50</td>
+                    </tr>
+                    <tr>
+                        <td>缺少重点尺寸</td>
+                        <td>100</td>
+                    </tr>
+                    <tr>
+                        <td>缺少未注公差</td>
+                        <td>100</td>
+                    </tr>
+                </table>
             </div>
-            <table class="stat-table">
-                <tr>
-                    <th>日期范围</th>
-                    <td id="dateRangeText">2025-06 至 2025-10</td>
-                </tr>
-                <tr>
-                    <th>检测图纸总数</th>
-                    <td>1000</td>
-                </tr>
-                <tr>
-                    <th>问题总数</th>
-                    <td>400</td>
-                </tr>
-                <tr>
-                    <th>问题类型</th>
-                    <th>问题数量</th>
-                </tr>
-                <tr>
-                    <td>尺寸错误</td>
-                    <td>50</td>
-                </tr>
-                <tr>
-                    <td>版本错误</td>
-                    <td>50</td>
-                </tr>
-                <tr>
-                    <td>图框错误</td>
-                    <td>50</td>
-                </tr>
-                <tr>
-                    <td>缺少单一材质重量</td>
-                    <td>50</td>
-                </tr>
-                <tr>
-                    <td>缺少重点尺寸</td>
-                    <td>100</td>
-                </tr>
-                <tr>
-                    <td>缺少未注公差</td>
-                    <td>100</td>
-                </tr>
+
+            <!-- 右侧问题类型分布图表 -->
+            <!-- 替换原“右侧问题类型分布图表”整个 div -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <span class="chart-title" id="chartTitle">问题类型分布</span>
+                    <button class="btn btn-secondary" id="toggleBtn" onclick="toggleChart()">切换为符合率</button>
+                </div>
+                <div id="chartContainer">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 问题明细列表 -->
+        <div class="table-card">
+            <div class="section-title">
+                📋 问题明细列表
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <div>
+                        <label for="issueTypeFilter">问题类型筛选：</label>
+                        <select id="issueTypeFilter" onchange="filterTable()">
+                            <option value="">全部</option>
+                            <option value="尺寸错误">尺寸错误</option>
+                            <option value="版本错误">版本错误</option>
+                            <option value="图框错误">图标错误</option>
+                            <option value="缺少单一材质重量">缺少单一材质重量</option>
+                            <option value="缺少重点尺寸">缺少重点尺寸</option>
+                            <option value="缺少未注公差">缺少未注公差</option>
+                        </select>
+                    </div>
+                    <div class="page-size-control">
+                        <label for="pageSize">每页显示：</label>
+                        <select id="pageSize" class="page-size-select" onchange="changePageSize()">
+                            <option value="5">5条</option>
+                            <option value="10" selected>10条</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <table id="detailTable">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>检查日期</th>
+                        <th>问题类型</th>
+                        <th>工程师</th>
+                        <th>物料名称</th>
+                        <th>物料分类</th>
+                        <th>图号</th>
+                    </tr>
+                </thead>
+                <tbody id="detailBody">
+                    <!-- 数据由JavaScript动态加载 -->
+                </tbody>
             </table>
-        </div>
-
-        <!-- 右侧问题类型分布图表 -->
-        <!-- 替换原“右侧问题类型分布图表”整个 div -->
-        <div class="chart-card">
-            <div class="chart-header">
-                <span class="chart-title" id="chartTitle">问题类型分布</span>
-                <button class="btn btn-secondary" id="toggleBtn" onclick="toggleChart()">切换为符合率</button>
-            </div>
-            <div id="chartContainer">
-                <canvas id="barChart"></canvas>
+            <div id="paginationControl" class="pagination-control" style="display:none">
+                <div class="pagination-info" id="paginationInfo"></div>
+                <div class="pagination-buttons" id="paginationButtons"></div>
             </div>
         </div>
     </div>
 
-    <!-- 问题明细列表 -->
-    <div class="table-card">
-        <div class="section-title">
-            📋 问题明细列表
-            <div>
-                <label for="issueTypeFilter">问题类型筛选：</label>
-                <select id="issueTypeFilter" onchange="filterTable()">
-                    <option value="">全部</option>
-                    <option value="尺寸错误">尺寸错误</option>
-                    <option value="版本错误">版本错误</option>
-                    <option value="图框错误">图框错误</option>
-                    <option value="缺少单一材质重量">缺少单一材质重量</option>
-                    <option value="缺少重点尺寸">缺少重点尺寸</option>
-                    <option value="缺少未注公差">缺少未注公差</option>
-                </select>
-            </div>
-        </div>
-        <table id="detailTable">
-            <thead>
-            <tr>
-                <th>序号</th>
-                <th>检查日期</th>
-                <th>问题类型</th>
-                <th>工程师</th>
-                <th>物料名称</th>
-                <th>物料分类</th>
-                <th>图号</th>
-            </tr>
-            </thead>
-            <tbody id="detailBody">
-            <!-- 静态示例数据 -->
-            <tr data-type="尺寸错误">
-                <td>1</td>
-                <td>2025-10-30</td>
-                <td><span class="badge badge-尺寸错误">尺寸错误</span></td>
-                <td>张三</td>
-                <td>显示面板</td>
-                <td>塑胶件</td>
-                <td>J3506-ROC90-01</td>
-            </tr>
-            <tr data-type="版本错误">
-                <td>2</td>
-                <td>2025-10-30</td>
-                <td><span class="badge badge-版本错误">版本错误</span></td>
-                <td>张三</td>
-                <td>显示面板</td>
-                <td>塑胶件</td>
-                <td>J3506-ROC90-01</td>
-            </tr>
-            <tr data-type="图框错误">
-                <td>3</td>
-                <td>2025-10-29</td>
-                <td><span class="badge badge-图框错误">图框错误</span></td>
-                <td>李四</td>
-                <td>支架</td>
-                <td>钣金件</td>
-                <td>J3506-BK150-03</td>
-            </tr>
-            <tr data-type="缺少单一材质重量">
-                <td>4</td>
-                <td>2025-10-28</td>
-                <td><span class="badge badge-缺少单一材质重量">缺少单一材质重量</span></td>
-                <td>王五</td>
-                <td>壳体</td>
-                <td>机加件</td>
-                <td>J3506-CS200-05</td>
-            </tr>
-            <tr data-type="缺少重点尺寸">
-                <td>5</td>
-                <td>2025-10-27</td>
-                <td><span class="badge badge-缺少重点尺寸">缺少重点尺寸</span></td>
-                <td>赵六</td>
-                <td>底座</td>
-                <td>塑胶件</td>
-                <td>J3506-DB120-02</td>
-            </tr>
-            <tr data-type="缺少未注公差">
-                <td>6</td>
-                <td>2025-10-26</td>
-                <td><span class="badge badge-缺少未注公差">缺少未注公差</span></td>
-                <td>钱七</td>
-                <td>盖板</td>
-                <td>钣金件</td>
-                <td>J3506-GB080-04</td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
+    <!-- 引入 Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        /* 全局变量 */
+        let chart;
+        let currentData = null; // 存储当前数据
+        let currentPage = 1; // 当前页码
+        let pageSize = 10; // 每页显示数量
+        let currentDisplayData = []; // 当前显示的明细数据
 
-<!-- 引入 Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- 按钮已加好，无需动 HTML，只把 JS 尾部改成下面这样 -->
-<script>
-    /* 1. 统一全局变量名，不要重复声明 */
-    let chart;   // ← 去掉前面的 let chart = new Chart(...) 里的 let
+        /* 问题类型配置 */
+        const issueTypes = [
+            { name: '尺寸错误', color: '#ff6384' },
+            { name: '版本错误', color: '#36a2eb' },
+            { name: '图标错误', color: '#ffce56' },
+            { name: '缺少单一材质重量', color: '#4bc0c0' },
+            { name: '缺少重点尺寸', color: '#9966ff' },
+            { name: '缺少未注公差', color: '#ff9f40' }
+        ];
 
-    /* 2. 生成月份标签和静态数据（你原来就有，保留） */
-    function generateMonthLabels(start, end) {
-        const labels = [];
-        const startMonth = new Date(start + '-01');
-        const endMonth = new Date(end + '-01');
-        while (startMonth <= endMonth) {
-            labels.push(startMonth.toISOString().slice(0, 7));
-            startMonth.setMonth(startMonth.getMonth() + 1);
+        /* 生成月份标签 */
+        function generateMonthLabels(start, end) {
+            const labels = [];
+            const startMonth = new Date(start + '-01');
+            const endMonth = new Date(end + '-01');
+            while (startMonth <= endMonth) {
+                labels.push(startMonth.toISOString().slice(0, 7));
+                startMonth.setMonth(startMonth.getMonth() + 1);
+            }
+            return labels;
         }
-        return labels;
-    }
-    const issueTypes = [
-        {name: '尺寸错误', color: '#ff6384'},
-        {name: '版本错误', color: '#36a2eb'},
-        {name: '图框错误', color: '#ffce56'},
-        {name: '缺少单一材质重量', color: '#4bc0c0'},
-        {name: '缺少重点尺寸', color: '#9966ff'},
-        {name: '缺少未注公差', color: '#ff9f40'}
-    ];
-    const staticData = {
-        '2025-06': [8, 7, 6, 5, 15, 14],
-        '2025-07': [10, 9, 8, 7, 18, 17],
-        '2025-08': [9, 8, 7, 6, 16, 15],
-        '2025-09': [12, 11, 10, 9, 22, 21],
-        '2025-10': [11, 10, 9, 8, 19, 18]
-    };
 
-    /* 3. 首次加载：画柱状图 */
-    window.onload = () => {
-        const labels = generateMonthLabels('2025-06','2025-10');
-        const datasets = issueTypes.map((t,i)=>({
-            label: t.name,
-            data: labels.map(m=>staticData[m][i]),
-            backgroundColor: t.color
-        }));
-        const cfg = {
-            type:'bar',
-            data:{labels,datasets},
-            options:{
-                responsive:true,
-                maintainAspectRatio:false,
-                plugins:{legend:{position:'bottom'}},
-                scales:{
-                    x:{title:{display:true,text:'月份'}},
-                    y:{title:{display:true,text:'问题数量'},beginAtZero:true}
+        /* 从API加载数据 */
+        async function loadData() {
+            try {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                const creator = document.getElementById('creatorFilter').value;
+                const materialType = document.getElementById('materialFilter').value;
+
+                const params = new URLSearchParams({
+                    start_date: startDate,
+                    end_date: endDate
+                });
+                if (creator) params.append('creator', creator);
+                if (materialType) params.append('material_type', materialType);
+
+                const response = await fetch(`/drawing/api/charts/statistics?${params}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    currentData = data;
+                    updateUI(data);
+                } else {
+                    alert('加载数据失败: ' + (data.error || '未知错误'));
                 }
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                alert('加载数据失败，请检查网络连接');
             }
-        };
-        const ctx = document.getElementById('barChart').getContext('2d');
-        chart = new Chart(ctx, cfg);   // ← 直接赋值给全局变量
-    };
+        }
 
-    /* 4. 饼图配置 */
-    function buildPieCfg(){
-        const total = 1000, problem = 400, compliant = total - problem;
-        return {
-            type:'pie',
-            data:{
-                labels:['符合','不符合'],
-                datasets:[{
-                    data:[compliant, problem],
-                    backgroundColor:['#4bc0c0','#ff6384'],
-                    borderWidth:2,
-                    borderColor:'#fff'
-                }]
-            },
-            options:{
-                responsive:true,
-                maintainAspectRatio:false,
-                plugins:{
-                    legend:{position:'bottom'},
-                    tooltip:{
-                        callbacks:{
-                            label:function(ctx){
-                                const v = ctx.parsed;
-                                const p = Math.round(v/1000*100);
-                                return ctx.label + '：' + v + ' (' + p + '%)';
-                            }
-                        }
-                    }
+        /* 更新UI */
+        function updateUI(data) {
+            const stats = data.statistics;
+            const details = data.details;
+
+            // 更新统计表格
+            document.getElementById('dateRangeText').textContent = stats.date_range;
+            document.querySelector('.stat-table tr:nth-child(2) td').textContent = stats.total_drawings;
+            document.querySelector('.stat-table tr:nth-child(3) td').textContent = stats.total_issues;
+
+            // 更新问题类型统计
+            const issueTypeRows = document.querySelectorAll('.stat-table tr:nth-child(n+5)');
+            Object.entries(stats.issue_types).forEach(([type, count], index) => {
+                if (issueTypeRows[index]) {
+                    issueTypeRows[index].querySelector('td:nth-child(2)').textContent = count;
                 }
-            }
-        };
-    }
+            });
 
-    /* 5. 切换函数 */
-    function toggleChart(){
-        const btn   = document.getElementById('toggleBtn');
-        const title = document.getElementById('chartTitle');
-        const ctx   = document.getElementById('barChart').getContext('2d');
+            // 更新图表
+            updateChart(stats);
 
-        chart.destroy();          // ← 先销毁当前实例
-        if(chart.config.type==='bar'){
-            chart = new Chart(ctx, buildPieCfg());
-            btn.textContent  = '切换为柱状图';
-            title.textContent= '符合率占比';
-        }else{
-            const labels = generateMonthLabels('2025-06','2025-10');
-            const datasets = issueTypes.map((t,i)=>({
-                label: t.name,
-                data: labels.map(m=>staticData[m][i]),
-                backgroundColor: t.color
+            // 更新明细表格
+            updateDetailsTable(details);
+        }
+
+        /* 更新图表 */
+        function updateChart(stats) {
+            const monthlyData = stats.monthly_data;
+            const months = Object.keys(monthlyData).sort();
+
+            const datasets = issueTypes.map(type => ({
+                label: type.name,
+                data: months.map(month => monthlyData[month][type.name] || 0),
+                backgroundColor: type.color
             }));
+
+            const ctx = document.getElementById('barChart').getContext('2d');
+
+            if (chart) {
+                chart.destroy();
+            }
+
             chart = new Chart(ctx, {
-                type:'bar',
-                data:{labels,datasets},
-                options:{
-                    responsive:true,
-                    maintainAspectRatio:false,
-                    plugins:{legend:{position:'bottom'}},
-                    scales:{
-                        x:{title:{display:true,text:'月份'}},
-                        y:{title:{display:true,text:'问题数量'},beginAtZero:true}
+                type: 'bar',
+                data: { labels: months, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: {
+                        x: { title: { display: true, text: '月份' } },
+                        y: { title: { display: true, text: '问题数量' }, beginAtZero: true }
                     }
                 }
             });
-            btn.textContent  = '切换为符合率';
-            title.textContent= '问题类型分布';
         }
-    }
-</script>
+
+        /* 更新明细表格（支持分页） */
+        function updateDetailsTable(details) {
+            currentDisplayData = details || [];
+            renderDetailsTable();
+        }
+
+        /* 渲染明细表格 */
+        function renderDetailsTable() {
+            const tbody = document.getElementById('detailBody');
+            tbody.innerHTML = '';
+
+            if (!currentDisplayData || currentDisplayData.length === 0) {
+                document.getElementById('paginationControl').style.display = 'none';
+                return;
+            }
+
+            // 计算分页数据
+            const totalRecords = currentDisplayData.length;
+            const totalPages = Math.ceil(totalRecords / pageSize);
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, totalRecords);
+            const pageData = currentDisplayData.slice(startIndex, endIndex);
+
+            // 渲染当前页的数据
+            pageData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.setAttribute('data-type', item.issue_type);
+                row.innerHTML = `
+                <td>${startIndex + index + 1}</td>
+                <td>${item.check_date}</td>
+                <td><span class="badge badge-${item.issue_type}">${item.issue_type}</span></td>
+                <td>${item.engineer}</td>
+                <td class="filename-cell" title="${item.material_name}">${item.material_name}</td>
+                <td>${item.material_type}</td>
+                <td class="filename-cell" title="${item.drawing_id}">${item.drawing_id}</td>
+            `;
+                tbody.appendChild(row);
+            });
+
+            // 渲染分页控制
+            renderPagination(totalRecords, totalPages);
+        }
+
+        /* 渲染分页控制 */
+        function renderPagination(totalRecords, totalPages) {
+            const paginationControl = document.getElementById('paginationControl');
+            const paginationInfo = document.getElementById('paginationInfo');
+            const paginationButtons = document.getElementById('paginationButtons');
+
+            if (totalPages <= 1) {
+                paginationControl.style.display = 'none';
+                return;
+            }
+
+            paginationControl.style.display = 'flex';
+
+            // 更新分页信息
+            const startRecord = (currentPage - 1) * pageSize + 1;
+            const endRecord = Math.min(currentPage * pageSize, totalRecords);
+            paginationInfo.innerHTML = `显示 ${startRecord} - ${endRecord} 条，共 ${totalRecords} 条`;
+
+            // 清空按钮容器
+            paginationButtons.innerHTML = '';
+
+            // 上一页按钮
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '上一页';
+            prevBtn.className = 'pagination-btn';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderDetailsTable();
+                }
+            };
+            paginationButtons.appendChild(prevBtn);
+
+            // 页码按钮
+            const maxButtons = 7;
+            let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+            let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+
+            if (endPage - startPage + 1 < maxButtons) {
+                startPage = Math.max(1, endPage - maxButtons + 1);
+            }
+
+            // 第一页和省略号
+            if (startPage > 1) {
+                const firstBtn = document.createElement('button');
+                firstBtn.textContent = '1';
+                firstBtn.className = 'pagination-btn';
+                firstBtn.onclick = () => {
+                    currentPage = 1;
+                    renderDetailsTable();
+                };
+                paginationButtons.appendChild(firstBtn);
+
+                if (startPage > 2) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '...';
+                    dots.style.padding = '0 5px';
+                    dots.style.fontSize = '13px';
+                    dots.style.color = '#999';
+                    paginationButtons.appendChild(dots);
+                }
+            }
+
+            // 中间页码
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.textContent = i;
+                pageBtn.className = 'pagination-btn';
+                if (i === currentPage) {
+                    pageBtn.classList.add('active');
+                }
+                pageBtn.onclick = () => {
+                    currentPage = i;
+                    renderDetailsTable();
+                };
+                paginationButtons.appendChild(pageBtn);
+            }
+
+            // 最后一页和省略号
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const dots = document.createElement('span');
+                    dots.textContent = '...';
+                    dots.style.padding = '0 5px';
+                    dots.style.fontSize = '13px';
+                    dots.style.color = '#999';
+                    paginationButtons.appendChild(dots);
+                }
+
+                const lastBtn = document.createElement('button');
+                lastBtn.textContent = totalPages;
+                lastBtn.className = 'pagination-btn';
+                lastBtn.onclick = () => {
+                    currentPage = totalPages;
+                    renderDetailsTable();
+                };
+                paginationButtons.appendChild(lastBtn);
+            }
+
+            // 下一页按钮
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = '下一页';
+            nextBtn.className = 'pagination-btn';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderDetailsTable();
+                }
+            };
+            paginationButtons.appendChild(nextBtn);
+        }
+
+        /* 改变页面大小 */
+        function changePageSize() {
+            pageSize = parseInt(document.getElementById('pageSize').value);
+            currentPage = 1; // 重置到第一页
+            renderDetailsTable();
+        }
+
+        /* 切换图表 */
+        function toggleChart() {
+            const btn = document.getElementById('toggleBtn');
+            const title = document.getElementById('chartTitle');
+            const ctx = document.getElementById('barChart').getContext('2d');
+
+            if (!currentData) return;
+
+            chart.destroy();
+
+            if (chart.config.type === 'bar') {
+                // 切换为饼图 - 使用新的字段
+                const stats = currentData.statistics;
+                const compliant = stats.compliant_count || 0;
+                const nonCompliant = stats.non_compliant_count || 0;
+                const total = stats.total_drawings;
+
+                chart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['符合', '不符合'],
+                        datasets: [{
+                            data: [compliant, nonCompliant],
+                            backgroundColor: ['#4bc0c0', '#ff6384'],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (ctx) {
+                                        const v = ctx.parsed;
+                                        const p = Math.round(v / total * 100);
+                                        return ctx.label + '：' + v + ' (' + p + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                btn.textContent = '切换为柱状图';
+                title.textContent = '符合率占比';
+            } else {
+                // 切换为柱状图
+                updateChart(currentData.statistics);
+                btn.textContent = '切换为符合率';
+                title.textContent = '问题类型分布';
+            }
+        }
+
+        /* 筛选表格 */
+        function filterTable() {
+            const filterValue = document.getElementById('issueTypeFilter').value;
+            const rows = document.querySelectorAll('#detailBody tr');
+
+            rows.forEach(row => {
+                if (!filterValue || row.getAttribute('data-type') === filterValue) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        /* 查询按钮 */
+        function handleQuery() {
+            loadData();
+        }
+
+        /* 重置按钮 */
+        function handleReset() {
+            document.getElementById('startDate').value = '2025-06-01';
+            document.getElementById('endDate').value = '2025-10-31';
+            document.getElementById('creatorFilter').value = '';
+            document.getElementById('materialFilter').value = '';
+            loadData();
+        }
+
+
+        /* 页面加载时初始化 */
+        window.onload = () => {
+            // 设置默认日期为最近6个月
+            const today = new Date();
+            const sixMonthsAgo = new Date(today);
+            sixMonthsAgo.setMonth(today.getMonth() - 6);
+
+            document.getElementById('startDate').value = sixMonthsAgo.toISOString().split('T')[0];
+            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+
+            loadData();
+        };
+    </script>
 </body>
+
 </html>
+```

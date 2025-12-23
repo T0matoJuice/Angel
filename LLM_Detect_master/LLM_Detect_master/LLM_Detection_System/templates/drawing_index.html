@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,6 +39,7 @@
                 opacity: 0;
                 transform: translateY(30px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -119,7 +121,7 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
             transition: left 0.5s;
         }
 
@@ -264,11 +266,17 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
+
 <body>
     <a href="/" class="back-btn">
         <span>←</span>
@@ -297,7 +305,7 @@
                 <span class="description">查看机械制图教材，学习标准制图规范要求</span>
             </a>
 
-            <a href=# class="option-btn btn-history" onclick="alert('该功能还在开发中')">
+            <a href="/drawing/charts" class="option-btn btn-history" onclick="showLoading(this)">
                 <span class="icon">📋</span>
                 <span class="text">统计报表</span>
                 <span class="description">查看最近制图检测统计报表</span>
@@ -349,7 +357,7 @@
         }
 
         // 页面加载完成后的动画效果
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // 首先重置所有按钮状态
             resetAllButtons();
 
@@ -367,7 +375,7 @@
         });
 
         // 页面显示时重置按钮状态（处理浏览器后退）
-        window.addEventListener('pageshow', function(event) {
+        window.addEventListener('pageshow', function (event) {
             // 如果是从缓存中恢复的页面，重置按钮状态
             if (event.persisted) {
                 resetAllButtons();
@@ -375,7 +383,7 @@
         });
 
         // 页面可见性变化时重置按钮状态
-        document.addEventListener('visibilitychange', function() {
+        document.addEventListener('visibilitychange', function () {
             if (!document.hidden) {
                 resetAllButtons();
             }
@@ -384,7 +392,7 @@
         // 阻止链接的默认行为，使用JavaScript控制跳转
         // 排除target="_blank"的链接（如制图规范），让它们正常在新窗口打开
         document.querySelectorAll('.option-btn:not([target="_blank"])').forEach(btn => {
-            btn.addEventListener('click', function(e) {
+            btn.addEventListener('click', function (e) {
                 e.preventDefault();
 
                 // 检查按钮是否已经在加载状态
@@ -398,4 +406,5 @@
         });
     </script>
 </body>
+
 </html>

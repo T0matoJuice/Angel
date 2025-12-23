@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -59,6 +60,7 @@
                 opacity: 0;
                 transform: translateY(30px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -105,8 +107,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .empty-state {
@@ -271,13 +278,25 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         @keyframes slideIn {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
 
         .modal-header {
@@ -400,6 +419,7 @@
         }
     </style>
 </head>
+
 <body>
     <a href="/excel" class="back-btn">
         <span>←</span>
@@ -413,6 +433,18 @@
         </div>
 
         <div class="content">
+            <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="showAllCheckbox" onchange="toggleShowAll()"
+                            style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 14px; color: #666;">显示所有用户的记录（包括API上传）</span>
+                    </label>
+                </div>
+                <div id="userInfo" style="font-size: 14px; color: #666;">
+                    <!-- 当前用户信息将在这里显示 -->
+                </div>
+            </div>
             <div id="historyContent">
                 <div class="loading">
                     <div class="loading-spinner"></div>
@@ -437,17 +469,32 @@
 
     <script>
         // 页面加载完成后获取历史记录
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             loadHistory();
         });
 
+        // 切换显示所有记录
+        function toggleShowAll() {
+            loadHistory();
+        }
+
         // 加载历史记录
         function loadHistory() {
-            fetch('/excel/api/history')
+            const showAll = document.getElementById('showAllCheckbox').checked;
+            const url = showAll ? '/excel/api/history?show_all=1' : '/excel/api/history';
+
+            fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         displayHistory(data.records);
+                        // 显示当前用户信息
+                        const userInfo = document.getElementById('userInfo');
+                        if (data.show_all) {
+                            userInfo.innerHTML = `当前用户: <strong>${data.current_user}</strong> | 显示: <strong>所有用户</strong>`;
+                        } else {
+                            userInfo.innerHTML = `当前用户: <strong>${data.current_user}</strong> | 显示: <strong>仅我的记录</strong>`;
+                        }
                     } else {
                         showError('获取历史记录失败: ' + data.error);
                     }
@@ -460,7 +507,7 @@
         // 显示历史记录列表
         function displayHistory(records) {
             const content = document.getElementById('historyContent');
-            
+
             if (!records || records.length === 0) {
                 content.innerHTML = `
                     <div class="empty-state">
@@ -474,8 +521,17 @@
             }
 
             let html = '<div class="history-list">';
-            
+
             records.forEach(record => {
+                // 根据是否有结果文件决定下载按钮的显示
+                const downloadButton = record.has_result_file
+                    ? `<button class="download-btn" onclick="event.stopPropagation(); downloadResult('${record.result_filename}')">
+                           📥 下载结果
+                       </button>`
+                    : `<button class="download-btn" style="opacity: 0.5; cursor: not-allowed;" disabled title="该记录暂无结果文件">
+                           📥 无结果文件
+                       </button>`;
+
                 html += `
                     <div class="history-item" onclick="viewDetail('${record.id}')">
                         <div class="history-header">
@@ -485,19 +541,21 @@
                                 <div class="history-time">${record.timestamp}</div>
                             </div>
                         </div>
-                        <div class="history-info">处理行数: ${record.rows_processed} 行 | 结果文件: ${record.filename}</div>
+                        <div class="history-info">
+                            账号: <strong>${record.account}</strong> | 
+                            处理行数: ${record.rows_processed} 行 | 
+                            结果文件: ${record.filename}
+                        </div>
                         <div class="button-group">
                             <button class="view-detail-btn" onclick="event.stopPropagation(); viewDetail('${record.id}')">
                                 查看详情
                             </button>
-                            <button class="download-btn" onclick="event.stopPropagation(); downloadResult('${record.filename}')">
-                                📥 下载结果
-                            </button>
+                            ${downloadButton}
                         </div>
                     </div>
                 `;
             });
-            
+
             html += '</div>';
             content.innerHTML = html;
         }
@@ -525,7 +583,18 @@
             const body = document.getElementById('modalBody');
 
             title.textContent = `处理详情 - ${record.original_filename}`;
-            
+
+            // 根据是否有结果文件决定下载按钮的显示
+            const downloadSection = record.has_result_file
+                ? `<div class="download-section">
+                       <button class="download-result-btn" onclick="downloadResult('${record.result_filename}')">
+                           📥 下载处理结果
+                       </button>
+                   </div>`
+                : `<div class="download-section">
+                       <p style="color: #666; font-size: 14px;">该记录暂无结果文件（通过API接口上传的数据不生成结果文件）</p>
+                   </div>`;
+
             body.innerHTML = `
                 <div class="detail-section">
                     <div class="detail-label">原始文件名</div>
@@ -552,11 +621,7 @@
                     <div class="detail-content">${record.filename}</div>
                 </div>
                 
-                <div class="download-section">
-                    <button class="download-result-btn" onclick="downloadResult('${record.filename}')">
-                        📥 下载处理结果
-                    </button>
-                </div>
+                ${downloadSection}
             `;
 
             modal.style.display = 'block';
@@ -573,7 +638,7 @@
         }
 
         // 点击模态框外部关闭
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             const modal = document.getElementById('detailModal');
             if (event.target === modal) {
                 closeModal();
@@ -594,4 +659,5 @@
         }
     </script>
 </body>
+
 </html>
