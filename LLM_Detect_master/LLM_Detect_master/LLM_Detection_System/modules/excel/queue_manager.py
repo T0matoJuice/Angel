@@ -209,6 +209,7 @@ class ExcelQueueManager:
                 filepath = task['filepath']
                 batch_size = task.get('batch_size', 5)
                 max_workers = task.get('max_workers', 10)
+                batch_size = 1
 
                 # 更新当前任务
                 with self.lock:
@@ -221,7 +222,6 @@ class ExcelQueueManager:
 
                 # 执行检测
                 start_time = time.time()
-                batch_size = 5
                 result = self._execute_inspection(filename, filepath, batch_size, max_workers)
                 duration = time.time() - start_time
                 
@@ -347,14 +347,13 @@ class ExcelQueueManager:
             updated_count = 0
             not_found_count = 0
             records_payload = []
-            
             if self.app:
                 with self.app.app_context():
                     for index, row in df_result.iterrows():
                         work_alone = str(row.get('工单单号', '')).strip()
                         work_order_nature = str(row.get('工单性质', '')).strip()
                         judgment_basis = str(row.get('判定依据', '')).strip()
-                        
+
                         if not work_alone or work_alone == 'nan':
                             continue
                         
@@ -367,20 +366,18 @@ class ExcelQueueManager:
                             workAlone=work_alone,
                             filename=filename
                         ).all()
-                        
+
                         if records:
+                            records_payload.append({
+                                "workAlone": work_alone,
+                                "workOrderNature": work_order_nature,
+                                "judgmentBasis": judgment_basis
+                            })
                             # 更新所有匹配的记录
                             for record in records:
                                 record.workOrderNature = work_order_nature if work_order_nature and work_order_nature != 'nan' else None
                                 record.judgmentBasis = judgment_basis if judgment_basis and judgment_basis != 'nan' else None
                                 updated_count += 1
-                                
-                                # 将每条记录都添加到回传payload中
-                                records_payload.append({
-                                    "workAlone": work_alone,
-                                    "workOrderNature": work_order_nature,
-                                    "judgmentBasis": judgment_basis
-                                })
                             
                             if index < 3:
                                 print(f"   ✅ 找到 {len(records)} 条记录，已全部更新")
@@ -400,10 +397,10 @@ class ExcelQueueManager:
             try:
                 token = self._fetch_token()
                 submit_resp = self._submit_judgment(token, records_payload)
-                print("🚀 已提交判定结果到外部接口")
+                print(f"🚀 已提交判定结果 {len(records_payload)}条 到外部接口")
                 print(json.dumps(submit_resp, ensure_ascii=False, indent=2) if isinstance(submit_resp, dict) else submit_resp)
             except Exception as e:
-                print(f"⚠️  提交判定结果到外部接口失败: {e}")
+                print(f"⚠️  提交判定结果 {len(records_payload)}条 到外部接口失败: {e}")
 
             # ========================================
             # 新增：生成Excel结果文件
