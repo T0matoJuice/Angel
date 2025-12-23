@@ -18,7 +18,7 @@ project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from modules.auth import db
-from app import create_app
+from app import app
 
 
 def add_field():
@@ -27,8 +27,6 @@ def add_field():
     print("=" * 60)
     print("数据库迁移：添加 workOrderNature_correct 字段")
     print("=" * 60)
-    
-    app = create_app()
     
     with app.app_context():
         try:

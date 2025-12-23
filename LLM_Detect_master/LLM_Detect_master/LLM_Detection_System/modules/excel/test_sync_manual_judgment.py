@@ -19,7 +19,7 @@ sys.path.insert(0, str(project_root))
 
 from modules.auth import db
 from modules.excel.models import WorkorderData
-from app import create_app
+from app import app
 
 
 def test_sync_logic():
@@ -28,8 +28,6 @@ def test_sync_logic():
     print("=" * 60)
     print("测试：人工判断数据同步逻辑")
     print("=" * 60)
-    
-    app = create_app()
     
     with app.app_context():
         # 模拟API返回的数据
@@ -110,8 +108,6 @@ def check_field_exists():
     print("\n" + "=" * 60)
     print("检查数据库字段")
     print("=" * 60)
-    
-    app = create_app()
     
     with app.app_context():
         try:

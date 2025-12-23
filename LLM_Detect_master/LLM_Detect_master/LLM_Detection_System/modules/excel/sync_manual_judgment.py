@@ -27,7 +27,7 @@ sys.path.insert(0, str(project_root))
 
 from modules.auth import db
 from modules.excel.models import WorkorderData
-from app import create_app
+from app import app
 
 
 class ManualJudgmentSyncer:
@@ -311,9 +311,7 @@ def main():
     
     args = parser.parse_args()
     
-    # 创建Flask应用上下文（用于数据库操作）
-    app = create_app()
-    
+    # 使用Flask应用上下文（用于数据库操作）
     with app.app_context():
         # 执行同步
         syncer = ManualJudgmentSyncer()
