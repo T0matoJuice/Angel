@@ -19,6 +19,7 @@ class WorkorderData(db.Model):
     filename = db.Column(db.String(255), nullable=True)  # Excel文件名（带时间戳）
     workAlone = db.Column(db.String(255), nullable=True)  # 工单单号（关联字段）
     workOrderNature = db.Column(db.String(255), nullable=True)  # 工单性质（AI判断结果）
+    workOrderNature_correct = db.Column(db.String(255), nullable=True)  # 工单性质（人工判断结果）
     judgmentBasis = db.Column(db.String(255), nullable=True)  # 判定依据
     productType = db.Column(db.String(255), nullable=True)  # 产品类型
     productTypeLevelOne = db.Column(db.String(255), nullable=True)  # 产品一级分类
