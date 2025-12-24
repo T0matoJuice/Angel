@@ -1849,9 +1849,9 @@ def excel_get_chart_statistics():
         else:
             accuracy_rate = None  # 无有效数据时返回None
         
-        # 构建历史工单列表
+        # 构建历史工单列表（返回所有记录，由前端分页显示）
         history = []
-        for record in records[:100]:  # 限制返回前100条
+        for record in records:
             history.append({
                 'work_alone': record.workAlone or '',
                 'work_order_nature': record.workOrderNature or '',
