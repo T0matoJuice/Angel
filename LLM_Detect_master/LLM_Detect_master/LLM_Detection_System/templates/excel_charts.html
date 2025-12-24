@@ -465,7 +465,7 @@
       document.querySelector('.stat-table tr:nth-child(2) td').textContent = stats.total_workorders;
       document.querySelector('.stat-table tr:nth-child(3) td').textContent = stats.quality_issues;
       document.querySelector('.stat-table tr:nth-child(4) td').textContent = stats.non_quality_issues;
-      document.querySelector('.stat-table tr:nth-child(5) td').textContent = stats.accuracy_rate + '%';
+      document.querySelector('.stat-table tr:nth-child(5) td').textContent = stats.accuracy_rate !== null ? stats.accuracy_rate + '%' : '暂无数据';
 
       // 更新图表
       updateChart(stats);
@@ -507,7 +507,7 @@
           },
           scales: {
             x: { title: { display: true, text: '月份' } },
-            y: { title: { display: true, text: '准确率 (%)' }, min: 90, max: 100 }
+            y: { title: { display: true, text: '准确率 (%)' }, min: 0, max: 100, beginAtZero: true }
           }
         }
       });

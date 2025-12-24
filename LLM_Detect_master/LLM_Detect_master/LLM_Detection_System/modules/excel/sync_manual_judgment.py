@@ -27,7 +27,6 @@ sys.path.insert(0, str(project_root))
 
 from modules.auth import db
 from modules.excel.models import WorkorderData
-from app import app
 
 
 class ManualJudgmentSyncer:
@@ -294,6 +293,7 @@ class ManualJudgmentSyncer:
         return stats
     
     def sync(self, start_date, end_date):
+        from app import app
         """
         执行完整的同步流程
         
