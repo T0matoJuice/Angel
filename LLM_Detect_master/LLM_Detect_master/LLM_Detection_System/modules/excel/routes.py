@@ -1797,31 +1797,57 @@ def excel_get_chart_statistics():
         quality_issues = sum(1 for r in records if r.workOrderNature in ['质量工单', '质量问题'])
         non_quality_issues = total_workorders - quality_issues
         
-        # 月度准确率统计（这里简化处理，实际应该根据人工复核数据计算）
-        # 由于没有人工复核字段，这里使用模拟数据
+        # 月度准确率统计 - 根据 workOrderNature 和 workOrderNature_correct 字段比较计算
+        # 只有当两个字段都有值时才参与计算，值一致则视为正确
         monthly_accuracy = {}
         monthly_counts = {}
+        
+        # 用于计算总体准确率的计数器
+        total_valid_records = 0  # 两个字段都有值的记录数
+        total_correct_records = 0  # 判定正确的记录数
         
         for record in records:
             if record.datatime:
                 try:
                     month = record.datatime[:7]  # YYYY-MM
                     if month not in monthly_counts:
-                        monthly_counts[month] = {'total': 0, 'quality': 0}
+                        monthly_counts[month] = {'total': 0, 'quality': 0, 'valid': 0, 'correct': 0}
                     monthly_counts[month]['total'] += 1
                     if record.workOrderNature in ['质量工单', '质量问题']:
                         monthly_counts[month]['quality'] += 1
+                    
+                    # 准确率计算：比较 workOrderNature 和 workOrderNature_correct
+                    # 如果两个字段都有值，则参与准确率计算
+                    ai_nature = record.workOrderNature.strip() if record.workOrderNature else None
+                    manual_nature = record.workOrderNature_correct.strip() if record.workOrderNature_correct else None
+                    
+                    if ai_nature and manual_nature:
+                        monthly_counts[month]['valid'] += 1
+                        total_valid_records += 1
+                        # 判断是否一致（判定正确）
+                        if ai_nature == manual_nature:
+                            monthly_counts[month]['correct'] += 1
+                            total_correct_records += 1
                 except:
                     pass
         
-        # 计算每月准确率（模拟：假设准确率在94-97%之间波动）
-        import random
+        # 计算每月准确率 - 基于真实数据
         for month in sorted(monthly_counts.keys()):
-            # 这里使用模拟准确率，实际应该根据人工复核数据计算
-            monthly_accuracy[month] = round(94.0 + random.random() * 3.0, 1)
+            valid_count = monthly_counts[month]['valid']
+            correct_count = monthly_counts[month]['correct']
+            if valid_count > 0:
+                monthly_accuracy[month] = round(correct_count / valid_count * 100, 1)
+            else:
+                monthly_accuracy[month] = None  # 无有效数据时返回None
         
-        # 总体准确率（模拟）
-        accuracy_rate = round(sum(monthly_accuracy.values()) / len(monthly_accuracy), 1) if monthly_accuracy else 96.0
+        # 过滤掉无有效数据的月份（显示时跳过）
+        monthly_accuracy = {k: v for k, v in monthly_accuracy.items() if v is not None}
+        
+        # 总体准确率 - 基于真实数据
+        if total_valid_records > 0:
+            accuracy_rate = round(total_correct_records / total_valid_records * 100, 1)
+        else:
+            accuracy_rate = None  # 无有效数据时返回None
         
         # 构建历史工单列表
         history = []
