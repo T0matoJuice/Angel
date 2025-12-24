@@ -336,6 +336,52 @@
             border-color: #4a90e2;
         }
 
+        /* 页码跳转输入框样式 */
+        .page-jump-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 15px;
+            font-size: 13px;
+        }
+
+        .page-jump-input {
+            width: 55px;
+            height: 32px;
+            padding: 0 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .page-jump-input:focus {
+            outline: none;
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+        }
+
+        .page-jump-btn {
+            padding: 6px 12px;
+            font-size: 13px;
+            border: 1px solid #4a90e2;
+            background: #4a90e2;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page-jump-btn:hover:not(:disabled) {
+            background: #357abd;
+            border-color: #357abd;
+        }
+
+        .page-jump-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         /* 响应式 */
         @media (max-width: 768px) {
             .header {
@@ -774,6 +820,52 @@
                 }
             };
             paginationButtons.appendChild(nextBtn);
+
+            // 添加页码跳转控件
+            const jumpControl = document.createElement('div');
+            jumpControl.className = 'page-jump-control';
+            jumpControl.innerHTML = `
+                <span>跳转到</span>
+                <input type="number" class="page-jump-input" id="pageJumpInput" min="1" max="${totalPages}" placeholder="页" onkeypress="handlePageJumpKeyPress(event, ${totalPages})">
+                <button class="page-jump-btn" onclick="goToPage(${totalPages})">GO</button>
+            `;
+            paginationButtons.appendChild(jumpControl);
+        }
+
+        // 跳转到指定页
+        function goToPage(maxPage) {
+            const input = document.getElementById('pageJumpInput');
+            const pageNum = parseInt(input.value);
+
+            // 验证输入
+            if (isNaN(pageNum) || pageNum < 1) {
+                alert('请输入大于0的页码！');
+                input.value = '';
+                input.focus();
+                return;
+            }
+
+            if (pageNum > maxPage) {
+                alert(`输入的页码超出范围！最大页码为${maxPage}`);
+                input.value = '';
+                input.focus();
+                return;
+            }
+
+            // 跳转到指定页
+            if (pageNum !== currentPage) {
+                currentPage = pageNum;
+                renderDetailsTable();
+            }
+
+            input.value = '';
+        }
+
+        // 处理回车键按下事件
+        function handlePageJumpKeyPress(event, maxPage) {
+            if (event.key === 'Enter') {
+                goToPage(maxPage);
+            }
         }
 
         /* 改变页面大小 */
