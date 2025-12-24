@@ -304,7 +304,7 @@ def create_summary_table(data: dict):
 def create_detail_table(data: dict):
     """创建详细检测结果表格"""
     detail_data = [
-        ['检测项目', '检测结果', '发现内容', '符合/不符合原因', '位置描述', '修改建议']
+        ['序号', '检测项目', '检测结果', '发现内容', '符合/不符合原因', '位置描述', '修改建议']
     ]
 
     # 12个检测项目的名称（按固定顺序）
@@ -335,6 +335,13 @@ def create_detail_table(data: dict):
         is_non_conform = '不符合' in result_text
 
         detail_data.append([
+            Paragraph(str(i), ParagraphStyle(
+                name='SerialNumber',
+                fontName=FONT_NAME,
+                fontSize=9,
+                leading=11,
+                alignment=TA_CENTER
+            )),
             Paragraph(point_names[i - 1], ParagraphStyle(
                 name='ProjectName',
                 fontName=FONT_NAME,
@@ -380,14 +387,15 @@ def create_detail_table(data: dict):
             ))
         ])
 
-    detail_table = Table(detail_data, colWidths=[2.5 * cm, 1.5 * cm, 3.8 * cm, 2.8 * cm, 2.5 * cm, 3.8 * cm])
+    detail_table = Table(detail_data, colWidths=[0.8 * cm, 2.2 * cm, 1.5 * cm, 3.5 * cm, 2.5 * cm, 2.3 * cm, 3.5 * cm])
 
     table_style = [
         ('FONT', (0, 0), (-1, 0), FONT_BOLD, 9),
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E8E8E8')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
         ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-        ('ALIGN', (1, 1), (1, -1), 'CENTER'),
+        ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # 序号列居中
+        ('ALIGN', (2, 1), (2, -1), 'CENTER'),  # 检测结果列居中
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
         ('LEFTPADDING', (0, 0), (-1, -1), 5),
