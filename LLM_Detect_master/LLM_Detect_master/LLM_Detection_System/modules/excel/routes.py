@@ -530,7 +530,8 @@ def excel_get_history():
         if not show_all:
             query = query.filter(WorkorderData.account == current_user.username)
         
-        query = query.limit(100)  # 限制最多返回100条记录
+        
+        # 不限制返回数量，由前端分页显示所有记录
         
         results = query.all()
         
