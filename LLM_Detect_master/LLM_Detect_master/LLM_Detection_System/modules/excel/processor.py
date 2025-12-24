@@ -15,6 +15,8 @@ import traceback
 import threading
 from typing import Tuple, List, Dict, Optional
 import copy
+import time
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 # 全局锁：用于日志打印和表头写入（避免多线程混乱）
 print_lock = Lock()
 header_lock = Lock()
@@ -673,6 +675,57 @@ class Processor:
         """深拷贝消息列表，确保每个线程有独立的副本"""
         return copy.deepcopy(original_messages)
 
+    def _call_ai_api_with_retry(self, messages, max_retries=None, initial_delay=1):
+        """带重试的API调用"""
+        if max_retries is None:
+            max_retries = self.max_retries
+
+        last_exception = None
+
+        for attempt in range(max_retries + 1):  # 包括第一次尝试
+            try:
+                if attempt > 0:  # 不是第一次尝试
+                    delay = initial_delay * (2 ** (attempt - 1))  # 指数退避
+                    delay = min(delay, 60)  # 最大延迟60秒
+                    print(f"🔄 第{attempt}次重试，等待{delay:.1f}秒...")
+                    time.sleep(delay)
+
+                print(f"📡 调用AI API (尝试 {attempt + 1}/{max_retries + 1})...")
+
+                resp = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=messages,
+                    temperature=0.0,
+                    max_tokens=24576
+                )
+
+                if attempt > 0:
+                    print(f"✅ 重试成功！")
+
+                return resp
+
+            except Exception as e:
+                last_exception = e
+                error_type = type(e).__name__
+
+                # 根据错误类型决定是否重试
+                if "rate limit" in str(e).lower() or "429" in str(e):
+                    print(f"⏳ 遇到频率限制，等待重试...")
+                elif "timeout" in str(e).lower():
+                    print(f"⏰ 请求超时，重试中...")
+                elif "connection" in str(e).lower():
+                    print(f"🔌 连接错误，重试中...")
+                else:
+                    print(f"⚠️  API调用失败 ({error_type}): {str(e)[:100]}...")
+
+                if attempt < max_retries:
+                    print(f"   将在{initial_delay * (2 ** attempt)}秒后重试...")
+                else:
+                    print(f"❌ 已达到最大重试次数({max_retries})")
+
+        # 所有重试都失败
+        raise Exception(f"API调用失败，重试{max_retries}次后仍失败: {str(last_exception)}")
+
     def apply_quality_rules(self, messages: list, test_excel: str) -> tuple:
         """工单类型检测：两阶段推理处理
 
@@ -834,11 +887,9 @@ CSV格式规范：
             start_time = time.time()
 
             # 调用AI模型进行判断
-            resp2 = client.chat.completions.create(
-                model=self.model,
+            resp2 = self._call_ai_api_with_retry(
                 messages=thread_messages,
-                temperature=0.0,
-                max_tokens=24576
+                max_retries=100
             )
 
             elapsed_time = time.time() - start_time
@@ -1041,11 +1092,9 @@ B类（非质量工单）：
                     print(f"  正在调用AI模型重试...")
                     retry_start_time = time.time()
 
-                    retry_resp = self.client.chat.completions.create(
-                        model=self.model,
-                        messages=retry_messages,
-                        temperature=0.0,
-                        max_tokens=24576
+                    retry_resp = self._call_ai_api_with_retry(
+                        messages=thread_messages,
+                        max_retries=100
                     )
 
                     retry_elapsed = time.time() - retry_start_time
@@ -1378,8 +1427,8 @@ B类（非质量工单）：
             # 第四步：合并所有批次结果
             print("\n" + "=" * 80)
             print(f"[步骤4] 合并批次结果，{len(all_results)}")
-            for item in all_results:
-                print(item + '\n')
+            # for item in all_results:
+            #     print(item + '\n')
             print("=" * 80)
 
             if header_line is None:
