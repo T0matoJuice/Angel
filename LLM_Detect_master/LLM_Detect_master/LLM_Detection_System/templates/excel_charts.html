@@ -350,6 +350,67 @@
       cursor: not-allowed;
     }
 
+    /* 同步区域样式 */
+    .sync-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px 30px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 0;
+    }
+
+    .sync-card .sync-title {
+      font-size: 16px;
+      color: #333;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-sync {
+      background: linear-gradient(45deg, #28a745, #20c997);
+      color: #fff;
+    }
+
+    .btn-sync:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .sync-result {
+      margin-left: auto;
+      font-size: 14px;
+      color: #666;
+      padding: 8px 15px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .sync-result.success {
+      background: #d4edda;
+      color: #155724;
+      display: block;
+    }
+
+    .sync-result.error {
+      background: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+
+    .sync-result.loading {
+      background: #fff3cd;
+      color: #856404;
+      display: block;
+    }
+
     @media (max-width: 768px) {
       .header {
         flex-direction: column;
@@ -358,6 +419,16 @@
 
       .chart-row {
         grid-template-columns: 1fr;
+      }
+
+      .sync-card {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .sync-result {
+        margin-left: 0;
+        text-align: center;
       }
     }
   </style>
@@ -389,6 +460,19 @@
       <a class="btn btn-primary" href="#" download="accuracy_report.csv">📥 下载</a>
     </div>
 
+    <!-- 同步人工判定结果区域 -->
+    <div class="sync-card">
+      <span class="sync-title">🔄 同步人工判定结果</span>
+      <div class="date-range">
+        <span>同步日期：</span>
+        <input type="date" id="syncStartDate">
+        <span>-</span>
+        <input type="date" id="syncEndDate">
+      </div>
+      <button class="btn btn-sync" id="syncBtn" onclick="handleSyncManualJudgment()">同步</button>
+      <div class="sync-result" id="syncResult"></div>
+    </div>
+
     <!-- 图表区 -->
     <div class="chart-row">
       <!-- 左侧统计表格 -->
@@ -412,6 +496,10 @@
           <tr>
             <th>非质量工单</th>
             <td>600</td>
+          </tr>
+          <tr>
+            <th>异常数</th>
+            <td>0</td>
           </tr>
           <tr>
             <th>判定准确率</th>
@@ -511,7 +599,8 @@
       document.querySelector('.stat-table tr:nth-child(2) td').textContent = stats.total_workorders;
       document.querySelector('.stat-table tr:nth-child(3) td').textContent = stats.quality_issues;
       document.querySelector('.stat-table tr:nth-child(4) td').textContent = stats.non_quality_issues;
-      document.querySelector('.stat-table tr:nth-child(5) td').textContent = stats.accuracy_rate !== null ? stats.accuracy_rate + '%' : '暂无数据';
+      document.querySelector('.stat-table tr:nth-child(5) td').textContent = stats.error_count !== undefined ? stats.error_count : 0;
+      document.querySelector('.stat-table tr:nth-child(6) td').textContent = stats.accuracy_rate !== null ? stats.accuracy_rate + '%' : '暂无数据';
 
       // 更新图表
       updateChart(stats);
@@ -745,9 +834,7 @@
         input.value = '';
         input.focus();
         return;
-      }
-
-      // 跳转到指定页
+      } // 跳转到指定页
       if (pageNum !== currentPage) {
         currentPage = pageNum;
         renderHistoryTable();
@@ -797,8 +884,78 @@
       document.getElementById('startDate').value = sixMonthsAgo.toISOString().split('T')[0];
       document.getElementById('endDate').value = today.toISOString().split('T')[0];
 
+      // 同步日期默认设置为今天
+      document.getElementById('syncStartDate').value = today.toISOString().split('T')[0];
+      document.getElementById('syncEndDate').value = today.toISOString().split('T')[0];
+
       loadData();
     };
+
+    /* 同步人工判定结果 */
+    async function handleSyncManualJudgment() {
+      const startDate = document.getElementById('syncStartDate').value;
+      const endDate = document.getElementById('syncEndDate').value;
+      const syncBtn = document.getElementById('syncBtn');
+      const syncResult = document.getElementById('syncResult');
+
+      // 验证日期
+      if (!startDate || !endDate) {
+        alert('请先选择同步日期范围');
+        return;
+      }
+
+      // 验证日期先后顺序
+      if (startDate > endDate) {
+        alert('开始日期不能晚于结束日期');
+        return;
+      }
+
+      // 确认操作
+      if (!confirm(`确定要同步 ${startDate} 至 ${endDate} 期间的人工判定结果吗？\n\n注意：需要连接内部VPN才能同步。`)) {
+        return;
+      }
+
+      // 显示加载状态
+      syncBtn.disabled = true;
+      syncBtn.textContent = '同步中...';
+      syncResult.className = 'sync-result loading';
+      syncResult.textContent = '正在从远程API获取人工判定数据，请稍候...';
+
+      try {
+        const response = await fetch('/excel/api/sync-manual-judgment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            start_date: startDate,
+            end_date: endDate
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          const stats = data.stats;
+          syncResult.className = 'sync-result success';
+          syncResult.innerHTML = `✅ ${data.message}<br>` +
+            `<small>API返回: ${stats.api_records}条 | 更新: ${stats.updated}条 | 未找到: ${stats.not_found}条 | 重复工单: ${stats.duplicate_count}个</small>`;
+
+          // 刷新统计数据
+          loadData();
+        } else {
+          syncResult.className = 'sync-result error';
+          syncResult.textContent = `❌ ${data.error || '同步失败'}`;
+        }
+      } catch (error) {
+        console.error('同步失败:', error);
+        syncResult.className = 'sync-result error';
+        syncResult.textContent = `❌ 网络错误，请检查VPN连接: ${error.message}`;
+      } finally {
+        syncBtn.disabled = false;
+        syncBtn.textContent = '同步';
+      }
+    }
   </script>
 </body>
 
