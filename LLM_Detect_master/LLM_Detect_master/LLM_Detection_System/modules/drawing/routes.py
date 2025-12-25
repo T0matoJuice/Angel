@@ -548,21 +548,33 @@ def drawing_get_chart_statistics():
         compliant_count = total_drawings - non_compliant_count
         
         # 问题类型统计 - 从drawing_detection表的对应字段
-        # 映射关系:
-        # 尺寸错误 -> result_1
-        # 版本错误 -> result_11  
-        # 图标错误 -> result_7
-        # 缺少单一材质重量 -> result_12
-        # 缺少重点尺寸 -> result_3
-        # 缺少未注公差 -> result_6
+        # 映射关系（共12个检测项目）:
+        # result_1  -> 关键尺寸识别（尺寸错误）
+        # result_2  -> 人员参数检查
+        # result_3  -> 未注公差表检查（缺少重点尺寸）
+        # result_4  -> 安吉尔LOGO检查
+        # result_5  -> 中文名称检查
+        # result_6  -> 材料信息检查（缺少未注公差）
+        # result_7  -> 重量信息检查（图标错误）
+        # result_8  -> 尺寸公差检测
+        # result_9  -> 公差精确度检测
+        # result_10 -> 技术要求检测
+        # result_11 -> 图号检查（版本错误）
+        # result_12 -> 重量信息检查（缺少单一材质重量）
         
         issue_types_count = {
-            '尺寸错误': 0,
-            '版本错误': 0,
-            '图标错误': 0,
-            '缺少单一材质重量': 0,
-            '缺少重点尺寸': 0,
-            '缺少未注公差': 0
+            '尺寸错误': 0,           # result_1
+            '人员参数检查': 0,       # result_2
+            '缺少重点尺寸': 0,       # result_3
+            'LOGO检查': 0,          # result_4
+            '名称检查': 0,          # result_5
+            '缺少未注公差': 0,       # result_6
+            '图标错误': 0,          # result_7
+            '尺寸公差检测': 0,       # result_8
+            '公差精确度检测': 0,     # result_9
+            '技术要求检测': 0,       # result_10
+            '版本错误': 0,          # result_11
+            '缺少单一材质重量': 0    # result_12
         }
         
         # 月度数据统计
@@ -573,9 +585,10 @@ def drawing_get_chart_statistics():
         
         # 遍历记录，从drawing_detection表获取详细检测项目
         for record in records:
-            # 使用SQL直接查询drawing_detection表
+            # 使用SQL直接查询drawing_detection表（获取全部12个result字段）
             sql = text("""
-                SELECT result_1, result_3, result_6, result_7, result_11, result_12
+                SELECT result_1, result_2, result_3, result_4, result_5, result_6,
+                       result_7, result_8, result_9, result_10, result_11, result_12
                 FROM drawing_detection
                 WHERE engineering_drawing_id = :drawing_id
             """)
@@ -594,9 +607,10 @@ def drawing_get_chart_statistics():
             
             # 分析检测结果，统计问题类型
             for detection in detection_records:
-                result_1, result_3, result_6, result_7, result_11, result_12 = detection
+                (result_1, result_2, result_3, result_4, result_5, result_6,
+                 result_7, result_8, result_9, result_10, result_11, result_12) = detection
                 
-                # 尺寸错误 - result_1
+                # result_1 - 尺寸错误（关键尺寸识别）
                 if result_1 and '不符合' in result_1:
                     issue_types_count['尺寸错误'] += 1
                     if month:
@@ -610,49 +624,21 @@ def drawing_get_chart_statistics():
                         'drawing_id': record.engineering_drawing_id or ''
                     })
                 
-                # 版本错误 - result_11
-                if result_11 and '不符合' in result_11:
-                    issue_types_count['版本错误'] += 1
+                # result_2 - 人员参数检查
+                if result_2 and '不符合' in result_2:
+                    issue_types_count['人员参数检查'] += 1
                     if month:
-                        monthly_data[month]['版本错误'] += 1
+                        monthly_data[month]['人员参数检查'] += 1
                     details.append({
                         'check_date': record.created_at[:10] if record.created_at else '',
-                        'issue_type': '版本错误',
+                        'issue_type': '人员参数检查',
                         'engineer': record.checker_name or '',
                         'material_name': record.original_filename or '',
                         'material_type': record.engineering_drawing_type or '',
                         'drawing_id': record.engineering_drawing_id or ''
                     })
                 
-                # 图标错误 - result_7
-                if result_7 and '不符合' in result_7:
-                    issue_types_count['图标错误'] += 1
-                    if month:
-                        monthly_data[month]['图标错误'] += 1
-                    details.append({
-                        'check_date': record.created_at[:10] if record.created_at else '',
-                        'issue_type': '图标错误',
-                        'engineer': record.checker_name or '',
-                        'material_name': record.original_filename or '',
-                        'material_type': record.engineering_drawing_type or '',
-                        'drawing_id': record.engineering_drawing_id or ''
-                    })
-                
-                # 缺少单一材质重量 - result_12
-                if result_12 and '不符合' in result_12:
-                    issue_types_count['缺少单一材质重量'] += 1
-                    if month:
-                        monthly_data[month]['缺少单一材质重量'] += 1
-                    details.append({
-                        'check_date': record.created_at[:10] if record.created_at else '',
-                        'issue_type': '缺少单一材质重量',
-                        'engineer': record.checker_name or '',
-                        'material_name': record.original_filename or '',
-                        'material_type': record.engineering_drawing_type or '',
-                        'drawing_id': record.engineering_drawing_id or ''
-                    })
-                
-                # 缺少重点尺寸 - result_3
+                # result_3 - 缺少重点尺寸（未注公差表检查）
                 if result_3 and '不符合' in result_3:
                     issue_types_count['缺少重点尺寸'] += 1
                     if month:
@@ -666,7 +652,35 @@ def drawing_get_chart_statistics():
                         'drawing_id': record.engineering_drawing_id or ''
                     })
                 
-                # 缺少未注公差 - result_6
+                # result_4 - LOGO检查（安吉尔LOGO检查）
+                if result_4 and '不符合' in result_4:
+                    issue_types_count['LOGO检查'] += 1
+                    if month:
+                        monthly_data[month]['LOGO检查'] += 1
+                    details.append({
+                        'check_date': record.created_at[:10] if record.created_at else '',
+                        'issue_type': 'LOGO检查',
+                        'engineer': record.checker_name or '',
+                        'material_name': record.original_filename or '',
+                        'material_type': record.engineering_drawing_type or '',
+                        'drawing_id': record.engineering_drawing_id or ''
+                    })
+                
+                # result_5 - 名称检查（中文名称检查）
+                if result_5 and '不符合' in result_5:
+                    issue_types_count['名称检查'] += 1
+                    if month:
+                        monthly_data[month]['名称检查'] += 1
+                    details.append({
+                        'check_date': record.created_at[:10] if record.created_at else '',
+                        'issue_type': '名称检查',
+                        'engineer': record.checker_name or '',
+                        'material_name': record.original_filename or '',
+                        'material_type': record.engineering_drawing_type or '',
+                        'drawing_id': record.engineering_drawing_id or ''
+                    })
+                
+                # result_6 - 缺少未注公差（材料信息检查）
                 if result_6 and '不符合' in result_6:
                     issue_types_count['缺少未注公差'] += 1
                     if month:
@@ -674,6 +688,90 @@ def drawing_get_chart_statistics():
                     details.append({
                         'check_date': record.created_at[:10] if record.created_at else '',
                         'issue_type': '缺少未注公差',
+                        'engineer': record.checker_name or '',
+                        'material_name': record.original_filename or '',
+                        'material_type': record.engineering_drawing_type or '',
+                        'drawing_id': record.engineering_drawing_id or ''
+                    })
+                
+                # result_7 - 图标错误（重量信息检查）
+                if result_7 and '不符合' in result_7:
+                    issue_types_count['图标错误'] += 1
+                    if month:
+                        monthly_data[month]['图标错误'] += 1
+                    details.append({
+                        'check_date': record.created_at[:10] if record.created_at else '',
+                        'issue_type': '图标错误',
+                        'engineer': record.checker_name or '',
+                        'material_name': record.original_filename or '',
+                        'material_type': record.engineering_drawing_type or '',
+                        'drawing_id': record.engineering_drawing_id or ''
+                    })
+                
+                # result_8 - 尺寸公差检测
+                if result_8 and '不符合' in result_8:
+                    issue_types_count['尺寸公差检测'] += 1
+                    if month:
+                        monthly_data[month]['尺寸公差检测'] += 1
+                    details.append({
+                        'check_date': record.created_at[:10] if record.created_at else '',
+                        'issue_type': '尺寸公差检测',
+                        'engineer': record.checker_name or '',
+                        'material_name': record.original_filename or '',
+                        'material_type': record.engineering_drawing_type or '',
+                        'drawing_id': record.engineering_drawing_id or ''
+                    })
+                
+                # result_9 - 公差精确度检测
+                if result_9 and '不符合' in result_9:
+                    issue_types_count['公差精确度检测'] += 1
+                    if month:
+                        monthly_data[month]['公差精确度检测'] += 1
+                    details.append({
+                        'check_date': record.created_at[:10] if record.created_at else '',
+                        'issue_type': '公差精确度检测',
+                        'engineer': record.checker_name or '',
+                        'material_name': record.original_filename or '',
+                        'material_type': record.engineering_drawing_type or '',
+                        'drawing_id': record.engineering_drawing_id or ''
+                    })
+                
+                # result_10 - 技术要求检测
+                if result_10 and '不符合' in result_10:
+                    issue_types_count['技术要求检测'] += 1
+                    if month:
+                        monthly_data[month]['技术要求检测'] += 1
+                    details.append({
+                        'check_date': record.created_at[:10] if record.created_at else '',
+                        'issue_type': '技术要求检测',
+                        'engineer': record.checker_name or '',
+                        'material_name': record.original_filename or '',
+                        'material_type': record.engineering_drawing_type or '',
+                        'drawing_id': record.engineering_drawing_id or ''
+                    })
+                
+                # result_11 - 版本错误（图号检查）
+                if result_11 and '不符合' in result_11:
+                    issue_types_count['版本错误'] += 1
+                    if month:
+                        monthly_data[month]['版本错误'] += 1
+                    details.append({
+                        'check_date': record.created_at[:10] if record.created_at else '',
+                        'issue_type': '版本错误',
+                        'engineer': record.checker_name or '',
+                        'material_name': record.original_filename or '',
+                        'material_type': record.engineering_drawing_type or '',
+                        'drawing_id': record.engineering_drawing_id or ''
+                    })
+                
+                # result_12 - 缺少单一材质重量（重量信息检查）
+                if result_12 and '不符合' in result_12:
+                    issue_types_count['缺少单一材质重量'] += 1
+                    if month:
+                        monthly_data[month]['缺少单一材质重量'] += 1
+                    details.append({
+                        'check_date': record.created_at[:10] if record.created_at else '',
+                        'issue_type': '缺少单一材质重量',
                         'engineer': record.checker_name or '',
                         'material_name': record.original_filename or '',
                         'material_type': record.engineering_drawing_type or '',
