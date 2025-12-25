@@ -196,6 +196,72 @@
             align-items: center;
         }
 
+        /* 多选下拉框样式 */
+        .multi-select-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .multi-select {
+            min-width: 200px;
+            min-height: 38px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .multi-select option {
+            padding: 6px 8px;
+            margin: 2px 0;
+        }
+
+        .multi-select option:checked {
+            background: linear-gradient(45deg, var(--grad-left), var(--grad-right));
+            color: white;
+        }
+
+        /* 已选标签展示 */
+        .selected-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            min-height: 30px;
+            align-items: center;
+        }
+
+        .selected-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: linear-gradient(45deg, var(--grad-left), var(--grad-right));
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .selected-tag .remove {
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .selected-tag .remove:hover {
+            opacity: 1;
+        }
+
+        .selected-count {
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -236,11 +302,6 @@
             color: #856404;
         }
 
-        .badge-图框错误 {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-
         .badge-缺少单一材质重量 {
             background: #d4edda;
             color: #155724;
@@ -254,6 +315,41 @@
         .badge-缺少未注公差 {
             background: #e2e3e5;
             color: #383d41;
+        }
+
+        .badge-人员参数检查 {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-LOGO检查 {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-名称检查 {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-图标错误 {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .badge-尺寸公差检测 {
+            background: #f0e1ff;
+            color: #6f42c1;
+        }
+
+        .badge-公差精确度检测 {
+            background: #ffe1cc;
+            color: #e8590c;
+        }
+
+        .badge-技术要求检测 {
+            background: #d3f9d8;
+            color: #2b8a3e;
         }
 
         /* 文件名/物料名称样式 - 限制宽度并显示省略号 */
@@ -439,6 +535,7 @@
             <div class="chart-card">
                 <div class="chart-header">
                     <span class="chart-title">统计信息</span>
+                    <button class="btn btn-secondary" id="statPageBtn" onclick="toggleStatPage()" style="padding: 6px 12px; font-size: 13px;">下一页 ▼</button>
                 </div>
                 <table class="stat-table">
                     <tr>
@@ -447,40 +544,17 @@
                     </tr>
                     <tr>
                         <th>检测图纸总数</th>
-                        <td>1000</td>
+                        <td id="totalDrawings">1000</td>
                     </tr>
                     <tr>
-                        <th>问题总数</th>
-                        <td>400</td>
+                        <th>检测总量</th>
+                        <td id="totalCheckCount">400</td>
                     </tr>
                     <tr>
                         <th>问题类型</th>
                         <th>问题数量</th>
                     </tr>
-                    <tr>
-                        <td>尺寸错误</td>
-                        <td>50</td>
-                    </tr>
-                    <tr>
-                        <td>版本错误</td>
-                        <td>50</td>
-                    </tr>
-                    <tr>
-                        <td>图标错误</td>
-                        <td>50</td>
-                    </tr>
-                    <tr>
-                        <td>缺少单一材质重量</td>
-                        <td>50</td>
-                    </tr>
-                    <tr>
-                        <td>缺少重点尺寸</td>
-                        <td>100</td>
-                    </tr>
-                    <tr>
-                        <td>缺少未注公差</td>
-                        <td>100</td>
-                    </tr>
+                    <!-- 问题类型统计行将由JavaScript动态渲染 -->
                 </table>
             </div>
 
@@ -507,11 +581,17 @@
                         <select id="issueTypeFilter" onchange="filterTable()">
                             <option value="">全部</option>
                             <option value="尺寸错误">尺寸错误</option>
-                            <option value="版本错误">版本错误</option>
-                            <option value="图框错误">图标错误</option>
-                            <option value="缺少单一材质重量">缺少单一材质重量</option>
+                            <option value="人员参数检查">人员参数检查</option>
                             <option value="缺少重点尺寸">缺少重点尺寸</option>
+                            <option value="LOGO检查">LOGO检查</option>
+                            <option value="名称检查">名称检查</option>
                             <option value="缺少未注公差">缺少未注公差</option>
+                            <option value="图标错误">图标错误</option>
+                            <option value="尺寸公差检测">尺寸公差检测</option>
+                            <option value="公差精确度检测">公差精确度检测</option>
+                            <option value="技术要求检测">技术要求检测</option>
+                            <option value="版本错误">版本错误</option>
+                            <option value="缺少单一材质重量">缺少单一材质重量</option>
                         </select>
                     </div>
                     <div class="page-size-control">
@@ -523,6 +603,14 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 已选标签展示区域 -->
+            <div style="margin: 15px 0; font-size: 13px; padding: 0 25px;">
+                <span class="selected-count" id="selectedCount">已选: 0 项</span>
+                <button class="btn btn-secondary" onclick="clearAllSelections()" style="padding: 4px 10px; font-size: 12px; margin-left: 8px;">清空</button>
+                <div class="selected-tags" id="selectedTags"></div>
+            </div>
+
             <table id="detailTable">
                 <thead>
                     <tr>
@@ -555,15 +643,22 @@
         let currentPage = 1; // 当前页码
         let pageSize = 10; // 每页显示数量
         let currentDisplayData = []; // 当前显示的明细数据
+        let issueTypePage = 1; // 问题类型当前页 (1=前6条, 2=后6条)
 
-        /* 问题类型配置 */
+        /* 问题类型配置 - 12个问题类型，支持分页显示 */
         const issueTypes = [
-            { name: '尺寸错误', color: '#ff6384' },
-            { name: '版本错误', color: '#36a2eb' },
-            { name: '图标错误', color: '#ffce56' },
-            { name: '缺少单一材质重量', color: '#4bc0c0' },
-            { name: '缺少重点尺寸', color: '#9966ff' },
-            { name: '缺少未注公差', color: '#ff9f40' }
+            { name: '尺寸错误', color: '#ff6384' },              // result_1
+            { name: '人员参数检查', color: '#36a2eb' },          // result_2
+            { name: '缺少重点尺寸', color: '#ffce56' },          // result_3
+            { name: 'LOGO检查', color: '#4bc0c0' },              // result_4
+            { name: '名称检查', color: '#9966ff' },              // result_5
+            { name: '缺少未注公差', color: '#ff9f40' },          // result_6
+            { name: '图标错误', color: '#ff6384' },              // result_7
+            { name: '尺寸公差检测', color: '#36a2eb' },          // result_8
+            { name: '公差精确度检测', color: '#ffce56' },        // result_9
+            { name: '技术要求检测', color: '#4bc0c0' },          // result_10
+            { name: '版本错误', color: '#9966ff' },              // result_11
+            { name: '缺少单一材质重量', color: '#ff9f40' }       // result_12
         ];
 
         /* 生成月份标签 */
@@ -618,19 +713,69 @@
             document.querySelector('.stat-table tr:nth-child(2) td').textContent = stats.total_drawings;
             document.querySelector('.stat-table tr:nth-child(3) td').textContent = stats.total_issues;
 
-            // 更新问题类型统计
-            const issueTypeRows = document.querySelectorAll('.stat-table tr:nth-child(n+5)');
-            Object.entries(stats.issue_types).forEach(([type, count], index) => {
-                if (issueTypeRows[index]) {
-                    issueTypeRows[index].querySelector('td:nth-child(2)').textContent = count;
-                }
-            });
+            // 渲染统计信息的问题类型分页
+            renderStatTable(stats);
 
             // 更新图表
             updateChart(stats);
 
             // 更新明细表格
             updateDetailsTable(details);
+        }
+
+        /* 渲染统计表格的问题类型（支持分页） */
+        function renderStatTable(stats) {
+            const table = document.querySelector('.stat-table');
+            const btn = document.getElementById('statPageBtn');
+
+            // 删除现有的问题类型行（保留前4行表头）
+            while (table.rows.length > 4) {
+                table.deleteRow(4);
+            }
+
+            // 更新总体统计
+            const totalCheckCount = stats.total_check_count || 0;
+            document.getElementById('totalCheckCount').textContent = totalCheckCount;
+
+            // 调试：打印接收到的数据
+            console.log('接收到的统计数据:', stats);
+            console.log('问题类型数据:', stats.issue_types);
+
+            // 计算要显示的问题类型范围
+            const startIndex = (issueTypePage - 1) * 6;
+            const endIndex = Math.min(startIndex + 6, issueTypes.length);
+
+            // 添加问题类型行 - 直接遍历issueTypes并显示对应的数量
+            for (let i = startIndex; i < endIndex; i++) {
+                const row = table.insertRow();
+                const typeName = issueTypes[i].name;
+                const count = stats.issue_types[typeName] || 0;
+
+                console.log(`问题类型: ${typeName}, 数量: ${count}`);
+
+                row.innerHTML = `
+                    <td>${typeName}</td>
+                    <td>${count}</td>
+                `;
+            }
+
+            // 更新按钮文字
+            if (issueTypePage === 1) {
+                btn.innerHTML = '下一页 ▼';
+            } else {
+                btn.innerHTML = '上一页 ▲';
+            }
+        }
+
+        /* 切换统计信息分页 */
+        function toggleStatPage() {
+            // 切换页码
+            issueTypePage = issueTypePage === 1 ? 2 : 1;
+
+            // 重新渲染统计表格
+            if (currentData && currentData.statistics) {
+                renderStatTable(currentData.statistics);
+            }
         }
 
         /* 更新图表 */
@@ -671,6 +816,72 @@
             renderDetailsTable();
         }
 
+        /* 获取选中的问题类型 */
+        function getSelectedIssueTypes() {
+            const select = document.getElementById('issueTypeFilter');
+            const selectedOptions = Array.from(select.selectedOptions);
+
+            // 如果选择了"全部"，则返回空数组（表示不筛选）
+            if (selectedOptions.some(opt => opt.value === '')) {
+                return [];
+            }
+
+            return selectedOptions.map(opt => opt.value);
+        }
+
+        /* 更新已选标签展示 */
+        function updateSelectedTags() {
+            const selectedTypes = getSelectedIssueTypes();
+            const selectedTags = document.getElementById('selectedTags');
+            const selectedCount = document.getElementById('selectedCount');
+
+            // 更新计数
+            selectedCount.textContent = `已选: ${selectedTypes.length} 项`;
+
+            // 清空现有标签
+            selectedTags.innerHTML = '';
+
+            // 添加标签
+            selectedTypes.forEach(type => {
+                const tag = document.createElement('div');
+                tag.className = 'selected-tag';
+                tag.innerHTML = `
+                    ${type}
+                    <span class="remove" onclick="removeSelectedType('${type}')">&times;</span>
+                `;
+                selectedTags.appendChild(tag);
+            });
+        }
+
+        /* 移除单个选中的问题类型 */
+        function removeSelectedType(type) {
+            const select = document.getElementById('issueTypeFilter');
+            const options = Array.from(select.options);
+
+            // 取消选中该项
+            const option = options.find(opt => opt.value === type);
+            if (option) {
+                option.selected = false;
+            }
+
+            // 更新展示和筛选
+            updateSelectedTags();
+            filterTable();
+        }
+
+        /* 清空所有选中的问题类型 */
+        function clearAllSelections() {
+            const select = document.getElementById('issueTypeFilter');
+            Array.from(select.options).forEach(opt => opt.selected = false);
+
+            // 默认选中"全部"
+            select.options[0].selected = true;
+
+            // 更新展示和筛选
+            updateSelectedTags();
+            filterTable();
+        }
+
         /* 渲染明细表格 */
         function renderDetailsTable() {
             const tbody = document.getElementById('detailBody');
@@ -681,12 +892,18 @@
                 return;
             }
 
+            // 先应用筛选（根据选中的问题类型）
+            const selectedTypes = getSelectedIssueTypes();
+            const filteredData = selectedTypes.length === 0
+                ? currentDisplayData
+                : currentDisplayData.filter(item => selectedTypes.includes(item.issue_type));
+
             // 计算分页数据
-            const totalRecords = currentDisplayData.length;
+            const totalRecords = filteredData.length;
             const totalPages = Math.ceil(totalRecords / pageSize);
             const startIndex = (currentPage - 1) * pageSize;
             const endIndex = Math.min(startIndex + pageSize, totalRecords);
-            const pageData = currentDisplayData.slice(startIndex, endIndex);
+            const pageData = filteredData.slice(startIndex, endIndex);
 
             // 渲染当前页的数据
             pageData.forEach((item, index) => {
@@ -706,6 +923,9 @@
 
             // 渲染分页控制
             renderPagination(totalRecords, totalPages);
+
+            // 更新已选标签展示
+            updateSelectedTags();
         }
 
         /* 渲染分页控制 */
@@ -873,6 +1093,48 @@
             pageSize = parseInt(document.getElementById('pageSize').value);
             currentPage = 1; // 重置到第一页
             renderDetailsTable();
+        }
+
+        /* 切换问题类型分页 */
+        function toggleIssueTypePage() {
+            const select = document.getElementById('issueTypeFilter');
+            const btn = document.getElementById('issueTypePageBtn');
+            const currentValue = select.value; // 保存当前选中的值
+
+            // 清空现有选项（保留"全部"选项）
+            select.innerHTML = '<option value="">全部</option>';
+
+            // 切换页码
+            issueTypePage = issueTypePage === 1 ? 2 : 1;
+
+            // 根据页码添加选项
+            const startIndex = (issueTypePage - 1) * 6;
+            const endIndex = Math.min(startIndex + 6, issueTypes.length);
+
+            for (let i = startIndex; i < endIndex; i++) {
+                const option = document.createElement('option');
+                option.value = issueTypes[i].name;
+                option.textContent = issueTypes[i].name;
+                select.appendChild(option);
+            }
+
+            // 恢复之前选中的值（如果还在当前页）
+            if (currentValue) {
+                const optionExists = Array.from(select.options).some(opt => opt.value === currentValue);
+                if (optionExists) {
+                    select.value = currentValue;
+                }
+            }
+
+            // 更新按钮文字
+            if (issueTypePage === 1) {
+                btn.innerHTML = '下一页 ▼';
+            } else {
+                btn.innerHTML = '上一页 ▲';
+            }
+
+            // 触发筛选
+            filterTable();
         }
 
         /* 切换图表 */
