@@ -135,15 +135,16 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
         # 步骤2: 对每个prompt文件进行检测（12次顺序执行）
         png_file_path = Path(str(png_file_path).replace("/app", "/root/project/LLM_Detect_master"))
 
-        # 检测1: prompt_1.txt（爆炸图或水路图跳过模型检测）
+
+# 检测1: prompt_1.txt（爆炸图或水路图跳过模型检测）
         print(f"\n🔍 [1/12] 使用 prompt_1.txt 进行检测...")
         if drawing_type in ["爆炸图", "水路图"]:
             cleaned_result = '''**第1条检测结果：**
-- 检测项目：尺寸公差检测
+- 检测项目：关键尺寸识别
 - 检测结果：符合
 - 发现内容：无
 - 位置描述：无
-- 符合/不符合原因：图纸类型为水路图或爆炸图，该类图纸无公差
+- 符合/不符合原因：图纸类型为水路图或爆炸图，该类图纸无尺寸
 - 修改建议：无'''
             all_result += f"{cleaned_result.strip()}\n\n"
             if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
@@ -167,23 +168,30 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
                     non_conforming_count += 1
                 print(f"✅ [1/12] prompt_1.txt 检测完成")
 
-        # 检测2: prompt_2.txt（爆炸图或水路图跳过模型检测）
-        print(f"\n🔍 [2/12] 使用 prompt_2.txt 进行检测...")
-        if drawing_type in ["爆炸图", "水路图"]:
+# 检测2: 根据图纸类型选择prompt文件
+        print(f"\n🔍 [2/12] 进行人员参数检查...")
+        if drawing_type in ["钣金件", "塑胶件", "电器件", "总成图", "金属件"]:
             cleaned_result = '''**第2条检测结果：**
-- 检测项目：公差精确度检测
+- 检测项目：人员参数检查
 - 检测结果：符合
 - 发现内容：无
 - 位置描述：无
-- 符合/不符合原因：图纸类型为水路图或爆炸图，该类图纸无公差
+- 符合/不符合原因：图纸类型为"钣金件"、"塑胶件"、"电器件"或"总成图"，该类图纸人员参数设置在CREO
 - 修改建议：无'''
             all_result += f"{cleaned_result.strip()}\n\n"
             if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
                 non_conforming_count += 1
-            print(f"✅ [2/12] prompt_2.txt 检测完成（图纸类型为{drawing_type}，跳过模型检测）")
+            print(f"✅ [2/12] 人员参数检查完成（图纸类型为{drawing_type}，跳过模型检测）")
         else:
-            prompt_file = prompts_dir / "prompt_2.txt"
+            if drawing_type in ["爆炸图", "水路图"]:
+                prompt_file = prompts_dir / "prompt_2_waterboom.txt"
+                prompt_name = "prompt_2_waterboom.txt"
+            else:
+                prompt_file = prompts_dir / "prompt_2.txt"
+                prompt_name = "prompt_2.txt"
+
             if prompt_file.exists():
+                print(f"使用 {prompt_name} 进行检测...")
                 with open(prompt_file, 'r', encoding='utf-8') as f:
                     prompt_content = f.read()
                 messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
@@ -197,17 +205,17 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
                 all_result += f"{cleaned_result.strip()}\n\n"
                 if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
                     non_conforming_count += 1
-                print(f"✅ [2/12] prompt_2.txt 检测完成")
+                print(f"✅ [2/12] {prompt_name} 检测完成")
 
-        # 检测3: prompt_3.txt（爆炸图或水路图跳过模型检测）
+# 检测3: prompt_3.txt（爆炸图或水路图跳过模型检测）
         print(f"\n🔍 [3/12] 使用 prompt_3.txt 进行检测...")
         if drawing_type in ["爆炸图", "水路图"]:
             cleaned_result = '''**第3条检测结果：**
-- 检测项目：关键尺寸识别
+- 检测项目：未注公差表检查
 - 检测结果：符合
 - 发现内容：无
 - 位置描述：无
-- 符合/不符合原因：图纸类型为水路图或爆炸图，该类图纸无尺寸
+- 符合/不符合原因：图纸类型为水路图或爆炸图，该类图纸无公差
 - 修改建议：无'''
             all_result += f"{cleaned_result.strip()}\n\n"
             if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
@@ -231,113 +239,10 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
                     non_conforming_count += 1
                 print(f"✅ [3/12] prompt_3.txt 检测完成")
 
-        # 检测4: prompt_4.txt（爆炸图或水路图跳过模型检测）
-        print(f"\n🔍 [4/12] 使用 prompt_4.txt 进行检测...")
-        if drawing_type in ["爆炸图", "水路图"]:
-            cleaned_result = '''**第4条检测结果：**
-- 检测项目：技术要求检测
-- 检测结果：符合
-- 发现内容：无
-- 位置描述：无
-- 符合/不符合原因：图纸类型为水路图或爆炸图，该类图纸无技术要求
-- 修改建议：无'''
-            all_result += f"{cleaned_result.strip()}\n\n"
-            if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
-                non_conforming_count += 1
-            print(f"✅ [4/12] prompt_4.txt 检测完成（图纸类型为{drawing_type}，跳过模型检测）")
-        else:
-            prompt_file = prompts_dir / "prompt_4.txt"
-            if prompt_file.exists():
-                with open(prompt_file, 'r', encoding='utf-8') as f:
-                    prompt_content = f.read()
-                messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
-                                                                                                    "image_url": {
-                                                                                                        "url": f"file://{png_file_path}"}}]}]
-                completion = client.chat.completions.create(model=model_name, messages=messages, temperature=0.6,
-                                                            max_tokens=8192)
-                result = completion.choices[0].message.content
-                cleaned_result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
-                cleaned_result = re.sub(r'</?answer>', '', cleaned_result)
-                all_result += f"{cleaned_result.strip()}\n\n"
-                if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
-                    non_conforming_count += 1
-                print(f"✅ [4/12] prompt_4.txt 检测完成")
-
-        # 检测5: 根据图纸类型选择prompt文件
-        print(f"\n🔍 [5/12] 进行人员参数检查...")
-        if drawing_type in ["钣金件", "塑胶件", "电器件", "总成图", "金属件"]:
-            cleaned_result = '''**第5条检测结果：**
-- 检测项目：人员参数检查
-- 检测结果：符合
-- 发现内容：无
-- 位置描述：无
-- 符合/不符合原因：图纸类型为"钣金件"、"塑胶件"、"电器件"或"总成图"，该类图纸人员参数设置在CREO
-- 修改建议：无'''
-            all_result += f"{cleaned_result.strip()}\n\n"
-            if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
-                non_conforming_count += 1
-            print(f"✅ [5/12] 人员参数检查完成（图纸类型为{drawing_type}，跳过模型检测）")
-        else:
-            if drawing_type in ["爆炸图", "水路图"]:
-                prompt_file = prompts_dir / "prompt_5_waterboom.txt"
-                prompt_name = "prompt_5_waterboom.txt"
-            else:
-                prompt_file = prompts_dir / "prompt_5.txt"
-                prompt_name = "prompt_5.txt"
-
-            if prompt_file.exists():
-                print(f"使用 {prompt_name} 进行检测...")
-                with open(prompt_file, 'r', encoding='utf-8') as f:
-                    prompt_content = f.read()
-                messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
-                                                                                                    "image_url": {
-                                                                                                        "url": f"file://{png_file_path}"}}]}]
-                completion = client.chat.completions.create(model=model_name, messages=messages, temperature=0.6,
-                                                            max_tokens=8192)
-                result = completion.choices[0].message.content
-                cleaned_result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
-                cleaned_result = re.sub(r'</?answer>', '', cleaned_result)
-                all_result += f"{cleaned_result.strip()}\n\n"
-                if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
-                    non_conforming_count += 1
-                print(f"✅ [5/12] {prompt_name} 检测完成")
-
-        # 检测6: prompt_6.txt（爆炸图或水路图跳过模型检测）
-        print(f"\n🔍 [6/12] 使用 prompt_6.txt 进行检测...")
-        if drawing_type in ["爆炸图", "水路图"]:
-            cleaned_result = '''**第6条检测结果：**
-- 检测项目：未注公差表检查
-- 检测结果：符合
-- 发现内容：无
-- 位置描述：无
-- 符合/不符合原因：图纸类型为水路图或爆炸图，该类图纸无公差
-- 修改建议：无'''
-            all_result += f"{cleaned_result.strip()}\n\n"
-            if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
-                non_conforming_count += 1
-            print(f"✅ [6/12] prompt_6.txt 检测完成（图纸类型为{drawing_type}，跳过模型检测）")
-        else:
-            prompt_file = prompts_dir / "prompt_6.txt"
-            if prompt_file.exists():
-                with open(prompt_file, 'r', encoding='utf-8') as f:
-                    prompt_content = f.read()
-                messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
-                                                                                                    "image_url": {
-                                                                                                        "url": f"file://{png_file_path}"}}]}]
-                completion = client.chat.completions.create(model=model_name, messages=messages, temperature=0.6,
-                                                            max_tokens=8192)
-                result = completion.choices[0].message.content
-                cleaned_result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
-                cleaned_result = re.sub(r'</?answer>', '', cleaned_result)
-                all_result += f"{cleaned_result.strip()}\n\n"
-                if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
-                    non_conforming_count += 1
-                print(f"✅ [6/12] prompt_6.txt 检测完成")
-
-        # 检测7: prompt_7.txt
-        prompt_file = prompts_dir / "prompt_7.txt"
+# 检测4: prompt_4.txt（安吉尔LOGO检查）
+        prompt_file = prompts_dir / "prompt_4.txt"
         if prompt_file.exists():
-            print(f"\n🔍 [7/12] 使用 prompt_7.txt 进行检测...")
+            print(f"\n🔍 [4/12] 使用 prompt_4.txt 进行检测（安吉尔LOGO检查）...")
             with open(prompt_file, 'r', encoding='utf-8') as f:
                 prompt_content = f.read()
             messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
@@ -351,12 +256,12 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
             all_result += f"{cleaned_result.strip()}\n\n"
             if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
                 non_conforming_count += 1
-            print(f"✅ [7/12] prompt_7.txt 检测完成")
+            print(f"✅ [4/12] prompt_4.txt 检测完成")
 
-        # 检测8: prompt_8.txt
-        prompt_file = prompts_dir / "prompt_8.txt"
+# 检测5: prompt_5.txt（中文名称检查）
+        prompt_file = prompts_dir / "prompt_5.txt"
         if prompt_file.exists():
-            print(f"\n🔍 [8/12] 使用 prompt_8.txt 进行检测...")
+            print(f"\n🔍 [5/12] 使用 prompt_5.txt 进行检测（中文名称检查）...")
             with open(prompt_file, 'r', encoding='utf-8') as f:
                 prompt_content = f.read()
             messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
@@ -370,31 +275,12 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
             all_result += f"{cleaned_result.strip()}\n\n"
             if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
                 non_conforming_count += 1
-            print(f"✅ [8/12] prompt_8.txt 检测完成")
+            print(f"✅ [5/12] prompt_5.txt 检测完成")
 
-        # 检测9: prompt_9.txt
-        prompt_file = prompts_dir / "prompt_9.txt"
+# 检测6: prompt_6.txt（材料信息检查，需后处理结果）
+        prompt_file = prompts_dir / "prompt_6.txt"
         if prompt_file.exists():
-            print(f"\n🔍 [9/12] 使用 prompt_9.txt 进行检测...")
-            with open(prompt_file, 'r', encoding='utf-8') as f:
-                prompt_content = f.read()
-            messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
-                                                                                                "image_url": {
-                                                                                                    "url": f"file://{png_file_path}"}}]}]
-            completion = client.chat.completions.create(model=model_name, messages=messages, temperature=0.6,
-                                                        max_tokens=8192)
-            result = completion.choices[0].message.content
-            cleaned_result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
-            cleaned_result = re.sub(r'</?answer>', '', cleaned_result)
-            all_result += f"{cleaned_result.strip()}\n\n"
-            if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
-                non_conforming_count += 1
-            print(f"✅ [9/12] prompt_9.txt 检测完成")
-
-        # 检测10: prompt_10.txt（材料信息检查，需后处理结果）
-        prompt_file = prompts_dir / "prompt_10.txt"
-        if prompt_file.exists():
-            print(f"\n🔍 [10/12] 使用 prompt_10.txt 进行检测...")
+            print(f"\n🔍 [6/12] 使用 prompt_6.txt 进行检测...")
             with open(prompt_file, 'r', encoding='utf-8') as f:
                 prompt_content = f.read()
             messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
@@ -436,33 +322,14 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
             all_result += f"{cleaned_result.strip()}\n\n"
             if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
                 non_conforming_count += 1
-            print(f"✅ [10/12] prompt_10.txt 检测完成")
+            print(f"✅ [6/12] prompt_6.txt 检测完成")
 
-        # 检测11: prompt_11.txt
-        prompt_file = prompts_dir / "prompt_11.txt"
-        if prompt_file.exists():
-            print(f"\n🔍 [11/12] 使用 prompt_11.txt 进行检测...")
-            with open(prompt_file, 'r', encoding='utf-8') as f:
-                prompt_content = f.read()
-            messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
-                                                                                                "image_url": {
-                                                                                                    "url": f"file://{png_file_path}"}}]}]
-            completion = client.chat.completions.create(model=model_name, messages=messages, temperature=0.6,
-                                                        max_tokens=8192)
-            result = completion.choices[0].message.content
-            cleaned_result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
-            cleaned_result = re.sub(r'</?answer>', '', cleaned_result)
-            all_result += f"{cleaned_result.strip()}\n\n"
-            if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
-                non_conforming_count += 1
-            print(f"✅ [11/12] prompt_11.txt 检测完成")
-
-        # 检测12: prompt_12.txt（重量信息检查，需后处理结果）
-        print(f"\n🔍 [12/12] 使用 prompt_12.txt 进行检测...")
+ # 检测7: prompt_7.txt（重量信息检查，需后处理结果）
+        print(f"\n🔍 [7/12] 使用 prompt_7.txt 进行检测...")
 
         # 其余图纸类型（非塑胶件、钣金件、金属件、爆炸图、水路图）直接写死结果
         if drawing_type not in ["塑胶件", "钣金件", "金属件", "爆炸图", "水路图"]:
-            cleaned_result = '''**第12条检测结果：**
+            cleaned_result = '''**第7条检测结果：**
 - 检测项目：重量信息检查
 - 检测结果：符合
 - 发现内容：无
@@ -472,10 +339,10 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
             all_result += f"{cleaned_result.strip()}\n\n"
             if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
                 non_conforming_count += 1
-            print(f"✅ [12/12] prompt_12.txt 检测完成（图纸类型为{drawing_type}，直接判定为符合）")
+            print(f"✅ [7/12] prompt_7.txt 检测完成（图纸类型为{drawing_type}，直接判定为符合）")
         else:
             # 需要调用模型检测的图纸类型
-            prompt_file = prompts_dir / "prompt_12.txt"
+            prompt_file = prompts_dir / "prompt_7.txt"
             if prompt_file.exists():
                 with open(prompt_file, 'r', encoding='utf-8') as f:
                     prompt_content = f.read()
@@ -550,7 +417,141 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
                 all_result += f"{cleaned_result.strip()}\n\n"
                 if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
                     non_conforming_count += 1
-                print(f"✅ [12/12] prompt_12.txt 检测完成")
+                print(f"✅ [7/12] prompt_7.txt 检测完成")
+
+# 检测8: prompt_8.txt（爆炸图或水路图跳过模型检测）
+        print(f"\n🔍 [8/12] 使用 prompt_8.txt 进行检测...")
+        if drawing_type in ["爆炸图", "水路图"]:
+            cleaned_result = '''**第8条检测结果：**
+- 检测项目：尺寸公差检测
+- 检测结果：符合
+- 发现内容：无
+- 位置描述：无
+- 符合/不符合原因：图纸类型为水路图或爆炸图，该类图纸无公差
+- 修改建议：无'''
+            all_result += f"{cleaned_result.strip()}\n\n"
+            if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
+                non_conforming_count += 1
+            print(f"✅ [8/12] prompt_8.txt 检测完成（图纸类型为{drawing_type}，跳过模型检测）")
+        else:
+            prompt_file = prompts_dir / "prompt_8.txt"
+            if prompt_file.exists():
+                with open(prompt_file, 'r', encoding='utf-8') as f:
+                    prompt_content = f.read()
+                messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
+                                                                                                    "image_url": {
+                                                                                                        "url": f"file://{png_file_path}"}}]}]
+                completion = client.chat.completions.create(model=model_name, messages=messages, temperature=0.6,
+                                                            max_tokens=8192)
+                result = completion.choices[0].message.content
+                cleaned_result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
+                cleaned_result = re.sub(r'</?answer>', '', cleaned_result)
+                all_result += f"{cleaned_result.strip()}\n\n"
+                if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
+                    non_conforming_count += 1
+                print(f"✅ [8/12] prompt_8.txt 检测完成")
+
+# 检测9: prompt_9.txt（爆炸图或水路图跳过模型检测）
+        print(f"\n🔍 [9/12] 使用 prompt_9.txt 进行检测...")
+        if drawing_type in ["爆炸图", "水路图"]:
+            cleaned_result = '''**第9条检测结果：**
+- 检测项目：公差精确度检测
+- 检测结果：符合
+- 发现内容：无
+- 位置描述：无
+- 符合/不符合原因：图纸类型为水路图或爆炸图，该类图纸无公差
+- 修改建议：无'''
+            all_result += f"{cleaned_result.strip()}\n\n"
+            if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
+                non_conforming_count += 1
+            print(f"✅ [9/12] prompt_9.txt 检测完成（图纸类型为{drawing_type}，跳过模型检测）")
+        else:
+            prompt_file = prompts_dir / "prompt_9.txt"
+            if prompt_file.exists():
+                with open(prompt_file, 'r', encoding='utf-8') as f:
+                    prompt_content = f.read()
+                messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
+                                                                                                    "image_url": {
+                                                                                                        "url": f"file://{png_file_path}"}}]}]
+                completion = client.chat.completions.create(model=model_name, messages=messages, temperature=0.6,
+                                                            max_tokens=8192)
+                result = completion.choices[0].message.content
+                cleaned_result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
+                cleaned_result = re.sub(r'</?answer>', '', cleaned_result)
+                all_result += f"{cleaned_result.strip()}\n\n"
+                if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
+                    non_conforming_count += 1
+                print(f"✅ [9/12] prompt_9.txt 检测完成")
+
+# 检测10: prompt_10.txt（爆炸图或水路图跳过模型检测）
+        print(f"\n🔍 [10/12] 使用 prompt_10.txt 进行检测...")
+        if drawing_type in ["爆炸图", "水路图"]:
+            cleaned_result = '''**第10条检测结果：**
+- 检测项目：技术要求检测
+- 检测结果：符合
+- 发现内容：无
+- 位置描述：无
+- 符合/不符合原因：图纸类型为水路图或爆炸图，该类图纸无技术要求
+- 修改建议：无'''
+            all_result += f"{cleaned_result.strip()}\n\n"
+            if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
+                non_conforming_count += 1
+            print(f"✅ [10/12] prompt_10.txt 检测完成（图纸类型为{drawing_type}，跳过模型检测）")
+        else:
+            prompt_file = prompts_dir / "prompt_10.txt"
+            if prompt_file.exists():
+                with open(prompt_file, 'r', encoding='utf-8') as f:
+                    prompt_content = f.read()
+                messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
+                                                                                                    "image_url": {
+                                                                                                        "url": f"file://{png_file_path}"}}]}]
+                completion = client.chat.completions.create(model=model_name, messages=messages, temperature=0.6,
+                                                            max_tokens=8192)
+                result = completion.choices[0].message.content
+                cleaned_result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
+                cleaned_result = re.sub(r'</?answer>', '', cleaned_result)
+                all_result += f"{cleaned_result.strip()}\n\n"
+                if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
+                    non_conforming_count += 1
+                print(f"✅ [10/12] prompt_10.txt 检测完成")
+
+# 检测11: prompt_11.txt（图号检查）
+        prompt_file = prompts_dir / "prompt_11.txt"
+        if prompt_file.exists():
+            print(f"\n🔍 [11/12] 使用 prompt_11.txt 进行检测（图号检查）...")
+            with open(prompt_file, 'r', encoding='utf-8') as f:
+                prompt_content = f.read()
+            messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
+                                                                                                "image_url": {
+                                                                                                    "url": f"file://{png_file_path}"}}]}]
+            completion = client.chat.completions.create(model=model_name, messages=messages, temperature=0.6,
+                                                        max_tokens=8192)
+            result = completion.choices[0].message.content
+            cleaned_result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
+            cleaned_result = re.sub(r'</?answer>', '', cleaned_result)
+            all_result += f"{cleaned_result.strip()}\n\n"
+            if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
+                non_conforming_count += 1
+            print(f"✅ [11/12] prompt_11.txt 检测完成")
+
+# 检测12: prompt_12.txt（版本号检查）
+        prompt_file = prompts_dir / "prompt_12.txt"
+        if prompt_file.exists():
+            print(f"\n🔍 [12/12] 使用 prompt_12.txt 进行检测（版本号检查）...")
+            with open(prompt_file, 'r', encoding='utf-8') as f:
+                prompt_content = f.read()
+            messages = [{"role": "user", "content": [{"type": "text", "text": prompt_content}, {"type": "image_url",
+                                                                                                "image_url": {
+                                                                                                    "url": f"file://{png_file_path}"}}]}]
+            completion = client.chat.completions.create(model=model_name, messages=messages, temperature=0.6,
+                                                        max_tokens=8192)
+            result = completion.choices[0].message.content
+            cleaned_result = re.sub(r'<think>.*?</think>', '', result, flags=re.DOTALL)
+            cleaned_result = re.sub(r'</?answer>', '', cleaned_result)
+            all_result += f"{cleaned_result.strip()}\n\n"
+            if re.search(r'- 检测结果[：:]\s*不符合', cleaned_result):
+                non_conforming_count += 1
+            print(f"✅ [12/12] prompt_12.txt 检测完成")
 
         print("\n🧹 已清理所有 <think> 标签内容。")
 
@@ -562,6 +563,18 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
 - 不符合项目：{non_conforming_count}项
 - 总体评价：{overall_evaluation}
 """
+
+
+
+
+
+
+
+
+
+
+
+
 
         final_result = {
             "success": True,
