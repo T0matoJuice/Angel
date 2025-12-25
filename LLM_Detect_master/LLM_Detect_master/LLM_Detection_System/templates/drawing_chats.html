@@ -535,7 +535,8 @@
             <div class="chart-card">
                 <div class="chart-header">
                     <span class="chart-title">统计信息</span>
-                    <button class="btn btn-secondary" id="statPageBtn" onclick="toggleStatPage()" style="padding: 6px 12px; font-size: 13px;">下一页 ▼</button>
+                    <button class="btn btn-secondary" id="statPageBtn" onclick="toggleStatPage()"
+                        style="padding: 6px 12px; font-size: 13px;">下一页 ▼</button>
                 </div>
                 <table class="stat-table">
                     <tr>
@@ -607,7 +608,8 @@
             <!-- 已选标签展示区域 -->
             <div style="margin: 15px 0; font-size: 13px; padding: 0 25px;">
                 <span class="selected-count" id="selectedCount">已选: 0 项</span>
-                <button class="btn btn-secondary" onclick="clearAllSelections()" style="padding: 4px 10px; font-size: 12px; margin-left: 8px;">清空</button>
+                <button class="btn btn-secondary" onclick="clearAllSelections()"
+                    style="padding: 4px 10px; font-size: 12px; margin-left: 8px;">清空</button>
                 <div class="selected-tags" id="selectedTags"></div>
             </div>
 
@@ -733,8 +735,8 @@
                 table.deleteRow(4);
             }
 
-            // 更新总体统计
-            const totalCheckCount = stats.total_check_count || 0;
+            // 更新总体统计 - 检测总量等于所有问题数量之和
+            const totalCheckCount = stats.total_issues || 0;
             document.getElementById('totalCheckCount').textContent = totalCheckCount;
 
             // 调试：打印接收到的数据
