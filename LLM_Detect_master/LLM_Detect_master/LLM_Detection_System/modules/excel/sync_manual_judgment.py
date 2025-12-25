@@ -48,7 +48,7 @@ class ManualJudgmentSyncer:
         self.token = None
         self.session = requests.Session()
         # 设置超时时间
-        self.timeout = 30
+        self.timeout = 120
         
     def get_bearer_token(self):
         """
