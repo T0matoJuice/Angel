@@ -396,10 +396,10 @@ class ExcelQueueManager:
             # 将判定结果上报到外部接口
             try:
                 token = self._fetch_token()
-                # submit_resp = self._submit_judgment(token, records_payload)
-                # print(f"🚀 已提交判定结果 {len(records_payload)}条 到外部接口")
-                print("判定结果未提交到外部接口（此处代码被注释掉以防止实际调用）")
-                # print(json.dumps(submit_resp, ensure_ascii=False, indent=2) if isinstance(submit_resp, dict) else submit_resp)
+                submit_resp = self._submit_judgment(token, records_payload)
+                print(f"🚀 已提交判定结果 {len(records_payload)}条 到外部接口")
+                # print("判定结果未提交到外部接口（此处代码被注释掉以防止实际调用）")
+                print(json.dumps(submit_resp, ensure_ascii=False, indent=2) if isinstance(submit_resp, dict) else submit_resp)
             except Exception as e:
                 print(f"⚠️  提交判定结果 {len(records_payload)}条 到外部接口失败: {e}")
 
