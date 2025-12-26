@@ -564,18 +564,6 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
 - 总体评价：{overall_evaluation}
 """
 
-
-
-
-
-
-
-
-
-
-
-
-
         final_result = {
             "success": True,
             "conclusion": overall_evaluation,
@@ -584,9 +572,12 @@ def inspect_drawing_test(drawing_file_path, drawing_type=None):
         }
 
     except Exception as e:
-        final_result = {"error": f"检测失败: {str(e)}"}
+        final_result = {"error": "检测失败: PDF文件损坏、格式不正确或文件内容为空"}
         if png_file_path and png_file_path.exists():
             logger.warning(f"⚠️ 检测失败，但PNG文件已保留用于调试: {png_file_path}")
             print(f"⚠️ 检测失败，PNG文件保留在: {png_file_path}")
+        # 记录原始错误信息到日志
+        # logger.error(f"PDF转换或检测异常: {str(e)}")
+        print(f"💡 详细错误: {str(e)}")
 
     return final_result
