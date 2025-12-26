@@ -398,6 +398,7 @@ class ExcelQueueManager:
                 token = self._fetch_token()
                 submit_resp = self._submit_judgment(token, records_payload)
                 print(f"🚀 已提交判定结果 {len(records_payload)}条 到外部接口")
+                # print("判定结果未提交到外部接口（此处代码被注释掉以防止实际调用）")
                 print(json.dumps(submit_resp, ensure_ascii=False, indent=2) if isinstance(submit_resp, dict) else submit_resp)
             except Exception as e:
                 print(f"⚠️  提交判定结果 {len(records_payload)}条 到外部接口失败: {e}")
@@ -406,88 +407,184 @@ class ExcelQueueManager:
             # 新增：生成Excel结果文件
             # ========================================
             print("🔨 正在生成Excel结果文件...")
-            
+
             try:
                 if self.app:
                     with self.app.app_context():
-                        # 从数据库查询所有记录
                         from modules.excel.models import WorkorderUselessdata1, WorkorderUselessdata2
+
+                        # 1. 一次性查询所有主表记录
                         records = WorkorderData.query.filter_by(filename=filename).all()
-                        
-                        # 定义19个字段
-                        expected_columns = ['工单单号','工单性质','判定依据','保内保外','批次入库日期','安装日期','购机日期',
-                                          '产品名称','开发主体','故障部位名称','故障组','故障类别','服务项目或故障现象',
-                                          '维修方式','旧件名称','新件名称','来电内容','现场诊断故障现象','处理方案简述或备注']
-                        
-                        # 构建结果数据
+
+                        if not records:
+                            print(f"⚠️  没有找到文件 {filename} 的记录")
+                            return {
+                                'success': True,
+                                'processed_count': processed_count,
+                                'updated_count': updated_count,
+                                'not_found_count': not_found_count,
+                                'excel_generated': False,
+                                'total_rows': 0
+                            }
+
+                        # 2. 提取所有工单号用于批量查询
+                        work_alone_list = [record.workAlone for record in records if record.workAlone]
+                        print(f"📊 开始处理 {len(work_alone_list)} 条工单记录")
+
+                        # 3. 批量查询 WorkorderUselessdata1 表
+                        u1_records = WorkorderUselessdata1.query.filter(
+                            WorkorderUselessdata1.filename == filename,
+                            WorkorderUselessdata1.workAlone.in_(work_alone_list)
+                        ).all()
+
+                        # 构建 u1 的映射字典 {workAlone: u1_record}
+                        u1_dict = {u.workAlone: u for u in u1_records}
+
+                        # 4. 批量查询 WorkorderUselessdata2 表
+                        u2_records = WorkorderUselessdata2.query.filter(
+                            WorkorderUselessdata2.filename == filename,
+                            WorkorderUselessdata2.workAlone.in_(work_alone_list)
+                        ).all()
+
+                        # 构建 u2 的映射字典 {workAlone: u2_record}
+                        u2_dict = {u.workAlone: u for u in u2_records}
+
+                        print(f"✅ 批量查询完成: u1记录={len(u1_records)}, u2记录={len(u2_records)}")
+
+                        # 5. 定义19个字段
+                        expected_columns = [
+                            '工单单号', '工单性质', '判定依据', '保内保外', '批次入库日期', '安装日期',
+                            '购机日期', '产品名称', '开发主体', '故障部位名称', '故障组', '故障类别',
+                            '服务项目或故障现象', '维修方式', '旧件名称', '新件名称', '来电内容',
+                            '现场诊断故障现象', '处理方案简述或备注'
+                        ]
+
+                        # 6. 优化后的规范化函数（预先编译正则，减少函数调用开销）
+                        def norm_fast(v):
+                            """快速规范化函数"""
+                            if v is None:
+                                return ''
+                            if isinstance(v, str) and v == 'None':
+                                return ''
+                            if isinstance(v, float) and pd.isna(v):
+                                return ''
+                            return str(v)
+
+                        # 7. 使用列表推导式快速构建数据
+                        import time
+                        start_time = time.time()
+
+                        # 预定义字段获取函数，减少循环中的属性查找
                         temp_data = []
                         for record in records:
-                            u1 = WorkorderUselessdata1.query.filter_by(filename=filename, workAlone=record.workAlone).first()
-                            u2 = WorkorderUselessdata2.query.filter_by(filename=filename, workAlone=record.workAlone).first()
-                            
-                            def norm(v):
-                                return '' if v is None or v == 'None' or (isinstance(v, float) and pd.isna(v)) else str(v)
-                            
-                            row_data = {
-                                '工单单号': norm(record.workAlone),
-                                '工单性质': norm(record.workOrderNature),
-                                '判定依据': norm(record.judgmentBasis),
-                                '保内保外': norm(u1.internalExternalInsurance if u1 else ''),
-                                '批次入库日期': norm(u1.batchWarehousingDate if u1 else ''),
-                                '安装日期': norm(u1.installDate if u1 else ''),
-                                '购机日期': norm(u1.purchaseDate if u1 else ''),
-                                '产品名称': norm(u1.productName if u1 else ''),
-                                '开发主体': norm(u1.developmentSubject if u1 else ''),
-                                '故障部位名称': norm(record.replacementPartName),
-                                '故障组': norm(record.faultGroup),
-                                '故障类别': norm(record.faultClassification),
-                                '服务项目或故障现象': norm(record.faultPhenomenon),
-                                '维修方式': norm(u2.maintenanceMode if u2 else ''),
-                                '旧件名称': norm(u2.oldPartName if u2 else ''),
-                                '新件名称': norm(u2.newPartName if u2 else ''),
-                                '来电内容': norm(record.callContent),
-                                '现场诊断故障现象': norm(record.onsiteFaultPhenomenon),
-                                '处理方案简述或备注': norm(record.remarks),
-                            }
-                            temp_data.append({k: row_data.get(k, '') for k in expected_columns})
-                        
-                        # 创建DataFrame
+                            work_alone = record.workAlone
+
+                            # 从字典中获取关联记录（O(1)时间复杂度）
+                            u1 = u1_dict.get(work_alone)
+                            u2 = u2_dict.get(work_alone)
+
+                            # 构建行数据 - 直接赋值，减少中间变量
+                            row_data = [
+                                # 工单单号
+                                norm_fast(work_alone),
+                                # 工单性质
+                                norm_fast(record.workOrderNature),
+                                # 判定依据
+                                norm_fast(record.judgmentBasis),
+                                # 保内保外
+                                norm_fast(u1.internalExternalInsurance if u1 else ''),
+                                # 批次入库日期
+                                norm_fast(u1.batchWarehousingDate if u1 else ''),
+                                # 安装日期
+                                norm_fast(u1.installDate if u1 else ''),
+                                # 购机日期
+                                norm_fast(u1.purchaseDate if u1 else ''),
+                                # 产品名称
+                                norm_fast(u1.productName if u1 else ''),
+                                # 开发主体
+                                norm_fast(u1.developmentSubject if u1 else ''),
+                                # 故障部位名称
+                                norm_fast(record.replacementPartName),
+                                # 故障组
+                                norm_fast(record.faultGroup),
+                                # 故障类别
+                                norm_fast(record.faultClassification),
+                                # 服务项目或故障现象
+                                norm_fast(record.faultPhenomenon),
+                                # 维修方式
+                                norm_fast(u2.maintenanceMode if u2 else ''),
+                                # 旧件名称
+                                norm_fast(u2.oldPartName if u2 else ''),
+                                # 新件名称
+                                norm_fast(u2.newPartName if u2 else ''),
+                                # 来电内容
+                                norm_fast(record.callContent),
+                                # 现场诊断故障现象
+                                norm_fast(record.onsiteFaultPhenomenon),
+                                # 处理方案简述或备注
+                                norm_fast(record.remarks)
+                            ]
+
+                            temp_data.append(row_data)
+
+                        build_time = time.time() - start_time
+                        print(f"⚡ 数据构建完成: {build_time:.3f}秒, {len(temp_data)}行")
+
+                        # 8. 使用优化的方式创建DataFrame
+                        start_time = time.time()
                         df_result = pd.DataFrame(temp_data, columns=expected_columns)
-                        
-                        # 生成结果文件名（使用原始filename，保持一致性）
-                        # 确保文件名以.xlsx结尾
+                        df_time = time.time() - start_time
+                        print(f"📄 DataFrame创建: {df_time:.3f}秒")
+
+                        # 9. 生成结果文件名
+                        import os
                         if filename.lower().endswith('.xlsx'):
-                            base_filename = filename[:-5]  # 去掉.xlsx
+                            base_filename = filename[:-5]
                             excel_filename = f"quality_result_{filename}"
                             csv_filename = f"quality_result_{base_filename}.csv"
                         else:
                             excel_filename = f"quality_result_{filename}.xlsx"
                             csv_filename = f"quality_result_{filename}.csv"
-                        
-                        # 保存文件
-                        import os
+
+                        # 10. 保存文件
                         results_folder = self.app.config.get('RESULTS_FOLDER', 'results')
-                        
-                        # 保存Excel文件
+                        os.makedirs(results_folder, exist_ok=True)
+
+                        # 保存Excel文件（使用更快的引擎）
+                        excel_start = time.time()
                         excel_filepath = os.path.join(results_folder, excel_filename)
-                        df_result.to_excel(excel_filepath, index=False)
-                        print(f"✅ Excel结果文件已生成: {excel_filename}")
-                        
-                        # 保存CSV文件（用于前端预览）
+                        df_result.to_excel(
+                            excel_filepath,
+                            index=False,
+                            engine='openpyxl'  # 明确指定引擎
+                        )
+                        excel_time = time.time() - excel_start
+                        print(f"💾 Excel保存: {excel_time:.3f}秒")
+                        print(f"✅ Excel结果文件: {excel_filename}")
+
+                        # 保存CSV文件
+                        csv_start = time.time()
                         csv_filepath = os.path.join(results_folder, csv_filename)
                         df_result.to_csv(csv_filepath, index=False, encoding='utf-8')
-                        print(f"✅ CSV结果文件已生成: {csv_filename}")
-                        
-                        # 将结果保存到task_results字典中
+                        csv_time = time.time() - csv_start
+                        print(f"💾 CSV保存: {csv_time:.3f}秒")
+                        print(f"✅ CSV结果文件: {csv_filename}")
+
+                        # 11. 保存结果信息
                         with self.lock:
                             self.task_results[filename] = {
                                 'excel_filename': excel_filename,
-                                'csv_filename': csv_filename,  # 现在有CSV文件了
+                                'csv_filename': csv_filename,
+                                'excel_filepath': excel_filepath,
+                                'csv_filepath': csv_filepath,
                                 'rows_processed': len(df_result),
                                 'completed_count': updated_count,
                                 'total_count': processed_count
                             }
-                        
+
+                        print(
+                            f"🎯 处理完成: 总计{len(df_result)}行, 耗时{build_time + df_time + excel_time + csv_time:.3f}秒")
+
             except Exception as e:
                 print(f"⚠️  生成Excel结果文件失败: {str(e)}")
                 import traceback

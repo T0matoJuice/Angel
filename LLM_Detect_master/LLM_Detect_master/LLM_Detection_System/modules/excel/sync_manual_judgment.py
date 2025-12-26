@@ -48,7 +48,7 @@ class ManualJudgmentSyncer:
         self.token = None
         self.session = requests.Session()
         # 设置超时时间
-        self.timeout = 30
+        self.timeout = 120
         
     def get_bearer_token(self):
         """
@@ -390,6 +390,9 @@ def main():
     )
     
     args = parser.parse_args()
+    
+    # 导入Flask应用实例
+    from app import app
     
     # 使用Flask应用上下文（用于数据库操作）
     with app.app_context():

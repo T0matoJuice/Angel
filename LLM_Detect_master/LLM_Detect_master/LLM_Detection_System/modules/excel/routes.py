@@ -530,7 +530,8 @@ def excel_get_history():
         if not show_all:
             query = query.filter(WorkorderData.account == current_user.username)
         
-        query = query.limit(100)  # 限制最多返回100条记录
+        
+        # 不限制返回数量，由前端分页显示所有记录
         
         results = query.all()
         
@@ -1863,7 +1864,10 @@ def excel_get_chart_statistics():
         # 格式化日期范围
         date_range = f"{start_date[:7]} 至 {end_date[:7]}"
         
-        print(f"📈 统计结果: 总工单={total_workorders}, 质量问题={quality_issues}, 准确率={accuracy_rate}%")
+        # 计算异常数（两个字段都有值但不一致的记录数）
+        error_count = total_valid_records - total_correct_records
+        
+        print(f"📈 统计结果: 总工单={total_workorders}, 质量问题={quality_issues}, 异常数={error_count}, 准确率={accuracy_rate}%")
         
         return jsonify({
             'success': True,
@@ -1872,6 +1876,7 @@ def excel_get_chart_statistics():
                 'total_workorders': total_workorders,
                 'quality_issues': quality_issues,
                 'non_quality_issues': non_quality_issues,
+                'error_count': error_count,
                 'accuracy_rate': accuracy_rate,
                 'monthly_accuracy': monthly_accuracy
             },
@@ -1883,4 +1888,126 @@ def excel_get_chart_statistics():
         print(f"❌ 获取统计数据失败: {str(e)}")
         traceback.print_exc()
         return jsonify({'error': f'获取统计数据失败: {str(e)}'}), 500
+
+
+@excel_bp.route('/api/sync-manual-judgment', methods=['POST'])
+@login_required
+def sync_manual_judgment_api():
+    """同步人工判定结果API
+    
+    从远程API获取人工判断的工单性质数据，
+    并更新数据库中对应记录的 workOrderNature_correct 字段
+    
+    Request Body:
+    {
+        "start_date": "2025-01-01",
+        "end_date": "2025-01-31"
+    }
+    
+    Returns:
+        JSON: 同步结果统计
+        {
+            "success": true,
+            "stats": {
+                "total": 100,
+                "updated": 95,
+                "not_found": 5,
+                "errors": 0,
+                "duplicate_count": 3,
+                "api_records": 100
+            },
+            "message": "同步完成"
+        }
+    """
+    try:
+        # 获取请求参数
+        data = request.get_json()
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        
+        # 验证日期参数
+        if not start_date or not end_date:
+            return jsonify({
+                'success': False,
+                'error': '请提供开始日期和结束日期'
+            }), 400
+        
+        # 验证日期格式
+        try:
+            datetime.strptime(start_date, '%Y-%m-%d')
+            datetime.strptime(end_date, '%Y-%m-%d')
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': '日期格式错误，应为 YYYY-MM-DD'
+            }), 400
+        
+        print("=" * 60)
+        print(f"🔄 开始同步人工判定结果")
+        print(f"   日期范围: {start_date} ~ {end_date}")
+        print("=" * 60)
+        
+        # 导入同步器类
+        from modules.excel.sync_manual_judgment import ManualJudgmentSyncer
+        
+        # 创建同步器实例
+        syncer = ManualJudgmentSyncer()
+        
+        # 1. 获取Token
+        syncer.get_bearer_token()
+        
+        # 2. 获取人工判断数据
+        data_list = syncer.fetch_manual_judgment_data(start_date, end_date)
+        
+        if not data_list:
+            print("⚠ 未获取到任何数据")
+            return jsonify({
+                'success': True,
+                'stats': {
+                    'total': 0,
+                    'updated': 0,
+                    'not_found': 0,
+                    'errors': 0,
+                    'duplicate_count': 0,
+                    'api_records': 0
+                },
+                'message': '未获取到任何人工判定数据，请检查日期范围或VPN连接'
+            })
+        
+        # 3. 更新数据库
+        stats = syncer.update_database(data_list)
+        
+        print("=" * 60)
+        print("✅ 同步完成")
+        print(f"   API返回记录: {stats['api_records']}")
+        print(f"   成功更新: {stats['updated']}")
+        print(f"   未找到工单: {stats['not_found']}")
+        print(f"   更新失败: {stats['errors']}")
+        print(f"   重复工单数: {stats['duplicate_count']}")
+        print("=" * 60)
+        
+        return jsonify({
+            'success': True,
+            'stats': stats,
+            'message': f"同步完成，成功更新 {stats['updated']} 条记录"
+        })
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"❌ 同步失败: {str(e)}")
+        print(error_details)
+        
+        # 检查是否是VPN连接问题
+        error_msg = str(e).lower()
+        if 'connection' in error_msg or 'timeout' in error_msg or 'refused' in error_msg:
+            return jsonify({
+                'success': False,
+                'error': f'网络连接失败，请检查是否已连接内部VPN: {str(e)}'
+            }), 500
+        
+        return jsonify({
+            'success': False,
+            'error': f'同步失败: {str(e)}'
+        }), 500
 

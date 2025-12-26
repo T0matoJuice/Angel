@@ -190,6 +190,7 @@ def fetch_detection_data(record_id: int) -> Optional[Dict]:
                 d1.id,
                 d1.engineering_drawing_id,
                 d1.original_filename,
+                d1.engineering_drawing_type,
                 d1.version,
                 d1.created_at,
                 d1.completed_at,
@@ -242,7 +243,7 @@ def create_header_table(data: dict):
     header_data = [
         ['试验编码时间日期：', f'{detection_date}'],
         ['1. 图纸基本信息', ''],
-        ['图号：', drawing_number],
+        ['图纸文档编号：', drawing_number],
         ['名称：', drawing_name],
         ['版本：', data['version'] if data['version'] else '无'],
         ['图纸类型：', data['engineering_drawing_type'] if data.get('engineering_drawing_type') else '未知'],

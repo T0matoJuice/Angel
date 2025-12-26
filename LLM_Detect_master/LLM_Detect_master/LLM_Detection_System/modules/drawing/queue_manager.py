@@ -12,11 +12,16 @@ from typing import Dict, Optional
 from flask import current_app
 from modules.drawing.services import inspect_drawing_api
 from modules.drawing.services_try import inspect_drawing_test
+from modules.drawing.Identify_drawing_types import identify_drawing_type
 from modules.drawing.models import DrawingData
 from modules.auth import db
 import requests
 from requests.auth import HTTPBasicAuth
 import os
+import pandas as pd
+from pathlib import Path
+import re
+from datetime import datetime
 
 
 class InspectionQueueManager:
@@ -202,7 +207,220 @@ class InspectionQueueManager:
                     else:
                         print(f"⚠️  警告: 找不到ID={record_id}的记录")
 
-            # 调用测试检测函数，传入图纸类型
+            # 当 drawing_type 为 "总成图" 时，进行图纸类型识别和Excel对比
+            if drawing_type == "CAD文档":
+                print(f"🔍 检测到总成图，开始识别图纸类型...")
+                
+                # 初始化错误消息
+                error_message = ""
+                
+                # 调用图纸类型识别函数
+                identified_type = identify_drawing_type(filepath)
+                
+                # 检查识别结果是否为空
+                if not identified_type or identified_type.strip() == "空白" or identified_type.strip() == "[空白]":
+                    error_message = "图纸为CAD文件，模型未识别到图纸中的中文名称"
+                    print(f"❌ {error_message}")
+                    
+                    # 输出错误结果到PNG目录下的txt文件
+                    png_dir = Path(__file__).resolve().parent / "PNG"
+                    png_dir.mkdir(exist_ok=True)
+                    
+                    result_file = png_dir / f"CAD文件识别结果.txt"
+                    
+                    with open(result_file, 'w', encoding='utf-8') as f:
+                        f.write(f"检测时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                        f.write(f"记录ID: {record_id}\n")
+                        f.write(f"图纸文件: {os.path.basename(filepath)}\n")
+                        f.write(f"原始图纸类型: {drawing_type}\n")
+                        f.write(f"错误信息: {error_message}\n")
+                        f.write(f"{'=' * 80}\n")
+                    
+                    print(f"✅ 识别结果已保存到: {result_file}")
+                    print(f"🛑 实验模式：CAD文件类型识别失败，终止检测流程")
+                    
+                    # 更新数据库状态和错误信息，便于前端显示
+                    engineering_id = None
+                    if self.app:
+                        with self.app.app_context():
+                            record = DrawingData.query.filter_by(id=int(record_id)).first()
+                            if record:
+                                record.status = 'failed'
+                                record.error_message = error_message
+                                record.completed_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                                engineering_id = record.engineering_drawing_id
+                                db.session.commit()
+                                print(f"✅ 数据库状态已更新: status=failed, completed_at={record.completed_at}")
+                    
+                    # 向远程接口发送失败通知
+                    try:
+                        remote_url = "http://plmtest.angelgroup.com.cn:8090/Windchill/ptc1/aiInterface/customUpload/sendEpmInfo"
+                        username = "plmSysInt"
+                        password = "plmSysInt"
+                        
+                        data = {
+                            "id": record_id,
+                            "epmDocNumber": engineering_id,
+                            "detectionResults": None,
+                            "type": "failed",
+                            "message": error_message,
+                            "detectionTime": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        }
+                        
+                        print(f"📤 向远程接口发送失败通知: {remote_url}")
+                        resp = requests.post(
+                            remote_url,
+                            auth=HTTPBasicAuth(username, password),
+                            data=data,
+                            timeout=60
+                        )
+                        print(f"✅ 远程通知响应: {resp.status_code} - {resp.text}")
+                    except requests.RequestException as e:
+                        print(f"⚠️  远程通知失败: {e}")
+                    except Exception as e:
+                        print(f"⚠️  远程通知异常: {e}")
+                    
+                    # 返回失败
+                    return {'success': False, 'error': error_message}
+                
+                print(f"✅ 原始识别结果: {identified_type}")
+                
+                # 去除【】符号
+                identified_type = re.sub(r'[\[\]【】]', '', identified_type).strip()
+                print(f"✅ 处理后识别结果: {identified_type}")
+                
+                # Excel文件对比逻辑
+                excel_dir = Path(__file__).resolve().parent / "EXCEL"
+                excel_files = [
+                    ("metal.xlsx", "金属件"),
+                    ("plastics.xlsx", "塑胶件"),
+                    ("electrical.xlsx", "电器件")
+                ]
+                
+                matched_type = "无匹配项"
+                matched_in_file = None
+                
+                # 依次对比三个Excel文件
+                for excel_file, type_name in excel_files:
+                    excel_path = excel_dir / excel_file
+                    
+                    if not excel_path.exists():
+                        print(f"⚠️  警告: Excel文件不存在 - {excel_path}")
+                        continue
+                    
+                    try:
+                        # 读取Excel文件
+                        df = pd.read_excel(excel_path)
+                        print(f"📄 正在对比 {excel_file}...")
+                        
+                        # 遍历所有单元格进行对比
+                        found = False
+                        for col in df.columns:
+                            if df[col].astype(str).str.contains(identified_type, na=False).any():
+                                matched_type = type_name
+                                matched_in_file = excel_file
+                                found = True
+                                print(f"✅ 在 {excel_file} 中找到匹配: {identified_type} -> {type_name}")
+                                break
+                        
+                        if found:
+                            break  # 找到匹配后终止对比
+                            
+                    except Exception as e:
+                        print(f"❌ 读取Excel文件失败 {excel_file}: {str(e)}")
+                        continue
+                
+                # 检查匹配结果
+                if matched_type == "无匹配项":
+                    error_message = "图纸为CAD文件，在所给物料表格中未找到匹配项"
+                    print(f"⚠️  {error_message}")
+                    
+                    # 输出无匹配结果到PNG目录下的txt文件
+                    png_dir = Path(__file__).resolve().parent / "PNG"
+                    png_dir.mkdir(exist_ok=True)
+                    
+                    result_file = png_dir / f"CAD文件识别结果.txt"
+                    
+                    with open(result_file, 'w', encoding='utf-8') as f:
+                        f.write(f"检测时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                        f.write(f"记录ID: {record_id}\n")
+                        f.write(f"图纸文件: {os.path.basename(filepath)}\n")
+                        f.write(f"原始图纸类型: {drawing_type}\n")
+                        f.write(f"模型识别结果: {identified_type}\n")
+                        f.write(f"错误信息: {error_message}\n")
+                        f.write(f"{'=' * 80}\n")
+                    
+                    print(f"✅ 识别结果已保存到: {result_file}")
+                    print(f"🛑 实验模式：CAD文件类型识别完成，终止检测流程")
+                    
+                    # 更新数据库状态和错误信息，便于前端显示
+                    engineering_id = None
+                    if self.app:
+                        with self.app.app_context():
+                            record = DrawingData.query.filter_by(id=int(record_id)).first()
+                            if record:
+                                record.status = 'failed'
+                                record.error_message = error_message
+                                record.completed_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                                engineering_id = record.engineering_drawing_id
+                                db.session.commit()
+                                print(f"✅ 数据库状态已更新: status=failed, completed_at={record.completed_at}")
+                    
+                    # 向远程接口发送失败通知
+                    try:
+                        remote_url = "http://plmtest.angelgroup.com.cn:8090/Windchill/ptc1/aiInterface/customUpload/sendEpmInfo"
+                        username = "plmSysInt"
+                        password = "plmSysInt"
+                        
+                        data = {
+                            "id": record_id,
+                            "epmDocNumber": engineering_id,
+                            "detectionResults": None,
+                            "type": "failed",
+                            "message": error_message,
+                            "detectionTime": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        }
+                        
+                        print(f"📤 向远程接口发送失败通知: {remote_url}")
+                        resp = requests.post(
+                            remote_url,
+                            auth=HTTPBasicAuth(username, password),
+                            data=data,
+                            timeout=60
+                        )
+                        print(f"✅ 远程通知响应: {resp.status_code} - {resp.text}")
+                    except requests.RequestException as e:
+                        print(f"⚠️  远程通知失败: {e}")
+                    except Exception as e:
+                        print(f"⚠️  远程通知异常: {e}")
+                    
+                    # 返回失败
+                    return {'success': False, 'error': error_message}
+                else:
+                    # 匹配成功，更新drawing_type为matched_type
+                    drawing_type = matched_type
+                    print(f"✅ 图纸类型已更新为: {drawing_type}")
+                    
+                    # 输出成功结果到PNG目录下的txt文件
+                    png_dir = Path(__file__).resolve().parent / "PNG"
+                    png_dir.mkdir(exist_ok=True)
+                    
+                    result_file = png_dir / f"CAD文件识别结果.txt"
+                    
+                    with open(result_file, 'w', encoding='utf-8') as f:
+                        f.write(f"检测时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                        f.write(f"记录ID: {record_id}\n")
+                        f.write(f"图纸文件: {os.path.basename(filepath)}\n")
+                        f.write(f"原始图纸类型: CAD文件\n")
+                        f.write(f"模型识别结果: {identified_type}\n")
+                        f.write(f"匹配文件: {matched_in_file}\n")
+                        f.write(f"最终类型: {matched_type}\n")
+                        f.write(f"{'=' * 80}\n")
+                    
+                    print(f"✅ 识别结果已保存到: {result_file}")
+                    print(f"✅ 继续进行 {drawing_type} 类型的常规检测...")
+
+            # 调用测试检测函数,传入图纸类型
             result = inspect_drawing_test(filepath, drawing_type)
 
             if 'error' in result:
