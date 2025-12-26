@@ -430,6 +430,43 @@ class InspectionQueueManager:
                     'failed',
                     error=result['error']
                 )
+                
+                # 获取engineering_id用于远程通知
+                engineering_id = None
+                if self.app:
+                    with self.app.app_context():
+                        record = DrawingData.query.filter_by(id=int(record_id)).first()
+                        if record:
+                            engineering_id = record.engineering_drawing_id
+                
+                # 向远程接口发送失败通知
+                try:
+                    remote_url = "http://plmtest.angelgroup.com.cn:8090/Windchill/ptc1/aiInterface/customUpload/sendEpmInfo"
+                    username = "plmSysInt"
+                    password = "plmSysInt"
+                    
+                    data = {
+                        "id": record_id,
+                        "epmDocNumber": engineering_id,
+                        "detectionResults": None,
+                        "type": "failed",
+                        "message": "检测失败: PDF文件损坏、格式不正确或文件内容为空",
+                        "detectionTime": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    }
+                    
+                    print(f"📤 向远程接口发送失败通知: {remote_url}")
+                    resp = requests.post(
+                        remote_url,
+                        auth=HTTPBasicAuth(username, password),
+                        data=data,
+                        timeout=60
+                    )
+                    print(f"✅ 远程通知响应: {resp.status_code} - {resp.text}")
+                except requests.RequestException as e:
+                    print(f"⚠️  远程通知失败: {e}")
+                except Exception as e:
+                    print(f"⚠️  远程通知异常: {e}")
+                
                 return {'success': False, 'error': result['error']}
 
             timestamp = result.get('timestamp', time.strftime('%Y-%m-%d %H:%M:%S'))

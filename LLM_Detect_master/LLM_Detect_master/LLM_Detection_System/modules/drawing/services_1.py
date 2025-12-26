@@ -239,7 +239,10 @@ def inspect_drawing_api(drawing_file_path):
         }
 
     except Exception as e:
-        final_result = {"error": f"检测失败: {str(e)}"}
+        final_result = {"error": "检测失败: PDF文件损坏、格式不正确或文件内容为空"}
+        # 记录原始错误信息到日志
+        logger.error(f"PDF转换或检测异常: {str(e)}")
+        print(f"💡 详细错误: {str(e)}")
     
     finally:
         # 清理逻辑保持不变
