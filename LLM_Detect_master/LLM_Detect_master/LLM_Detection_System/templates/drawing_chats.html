@@ -179,6 +179,19 @@
             font-weight: 600;
         }
 
+        /* 设置统计表格列宽 - 让日期范围和错误数更平均 */
+        .stat-table th:nth-child(1),
+        .stat-table td:nth-child(1) { width: 25%; }
+
+        .stat-table th:nth-child(2),
+        .stat-table td:nth-child(2) { width: 25%; }
+
+        .stat-table th:nth-child(3),
+        .stat-table td:nth-child(3) { width: 25%; }
+
+        .stat-table th:nth-child(4),
+        .stat-table td:nth-child(4) { width: 25%; }
+
         /* 问题明细列表 */
         .table-card {
             background: var(--card-bg);
@@ -675,18 +688,24 @@
                     <tr>
                         <th>日期范围</th>
                         <td id="dateRangeText">2025-06 至 2025-10</td>
+                        <th>错误数</th>
+                        <td id="totalErrors">25</td>
                     </tr>
                     <tr>
                         <th>检测图纸总数</th>
                         <td id="totalDrawings">1000</td>
+                        <td></td>
+                        <td></td>
                     </tr>
                     <tr>
                         <th>检测总量</th>
                         <td id="totalCheckCount">400</td>
+                        <td></td>
+                        <td></td>
                     </tr>
                     <tr>
-                        <th>问题类型</th>
-                        <th>问题数量</th>
+                        <th colspan="2">问题类型</th>
+                        <th colspan="2">问题数量</th>
                     </tr>
                     <!-- 问题类型统计行将由JavaScript动态渲染 -->
                 </table>
@@ -885,7 +904,7 @@
             const startIndex = (issueTypePage - 1) * 6;
             const endIndex = Math.min(startIndex + 6, typesToShow.length);
 
-            // 添加问题类型行
+            // 添加问题类型行（4列布局，与表头对齐）
             for (let i = startIndex; i < endIndex; i++) {
                 const row = table.insertRow();
                 const typeName = typesToShow[i].name;
@@ -894,8 +913,8 @@
                 console.log(`问题类型: ${typeName}, 数量: ${count}`);
 
                 row.innerHTML = `
-                    <td>${typeName}</td>
-                    <td>${count}</td>
+                    <td colspan="2">${typeName}</td>
+                    <td colspan="2">${count}</td>
                 `;
             }
 
