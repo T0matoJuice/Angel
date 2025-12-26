@@ -781,10 +781,43 @@ def drawing_get_chart_statistics():
         # 计算总问题数
         total_issues = sum(issue_types_count.values())
         
+        # 计算异常数：比较drawing_dataset和drawing_detection表中对应字段的差异
+        anomaly_count = 0
+        for record in records:
+            # 查询 drawing_dataset 表中的记录
+            dataset_sql = text("""
+                SELECT result_1, result_2, result_3, result_4, result_5, result_6,
+                       result_7, result_8, result_9, result_10, result_11, result_12
+                FROM drawing_dataset
+                WHERE engineering_drawing_id = :drawing_id
+            """)
+            dataset_records = db.session.execute(dataset_sql, {'drawing_id': record.engineering_drawing_id}).fetchall()
+            
+            # 查询 drawing_detection 表中的记录
+            detection_sql = text("""
+                SELECT result_1, result_2, result_3, result_4, result_5, result_6,
+                       result_7, result_8, result_9, result_10, result_11, result_12
+                FROM drawing_detection
+                WHERE engineering_drawing_id = :drawing_id
+            """)
+            detection_records = db.session.execute(detection_sql, {'drawing_id': record.engineering_drawing_id}).fetchall()
+            
+            # 比较两个表中的结果，如果有对应记录则进行对比
+            if dataset_records and detection_records:
+                for dataset_row in dataset_records:
+                    for detection_row in detection_records:
+                        # 比较12个result字段
+                        for i in range(12):
+                            dataset_val = dataset_row[i] if dataset_row[i] else ''
+                            detection_val = detection_row[i] if detection_row[i] else ''
+                            # 如果两个值不相同，则计为异常
+                            if dataset_val != detection_val:
+                                anomaly_count += 1
+        
         # 格式化日期范围
         date_range = f"{start_date[:7]} 至 {end_date[:7]}"
         
-        print(f"📈 统计结果: 总图纸={total_drawings}, 符合={compliant_count}, 不符合={non_compliant_count}, 总问题={total_issues}")
+        print(f"📈 统计结果: 总图纸={total_drawings}, 符合={compliant_count}, 不符合={non_compliant_count}, 总问题={total_issues}, 异常数={anomaly_count}")
         print(f"   问题分布: {issue_types_count}")
         
         return jsonify({
@@ -795,6 +828,7 @@ def drawing_get_chart_statistics():
                 'compliant_count': compliant_count,
                 'non_compliant_count': non_compliant_count,
                 'total_issues': total_issues,
+                'anomaly_count': anomaly_count,
                 'issue_types': issue_types_count,
                 'monthly_data': monthly_data
             },

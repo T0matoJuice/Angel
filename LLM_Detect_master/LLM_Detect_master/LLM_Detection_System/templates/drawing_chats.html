@@ -261,6 +261,7 @@
                 opacity: 0;
                 transform: translateY(-50px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -657,7 +658,7 @@
 
             <button class="btn btn-primary" onclick="handleQuery()">🔍 查询</button>
             <button class="btn btn-secondary" onclick="handleReset()">重置</button>
-{#            <a class="btn btn-primary" href="#" download="ai_issue.csv">📥 下载</a>#}
+            {# <a class="btn btn-primary" href="#" download="ai_issue.csv">📥 下载</a>#}
         </div>
 
         <!-- 图表区 -->
@@ -667,8 +668,10 @@
                 <div class="chart-header">
                     <span class="chart-title">统计信息</span>
                     <div style="display: flex; gap: 8px;">
-                        <button class="btn btn-secondary" onclick="openFilterModal()" style="padding: 6px 12px; font-size: 13px;" id="filterBtn">⚙️ 筛选</button>
-                        <button class="btn btn-secondary" id="statPageBtn" onclick="toggleStatPage()" style="padding: 6px 12px; font-size: 13px;">下一页 ▼</button>
+                        <button class="btn btn-secondary" onclick="openFilterModal()"
+                            style="padding: 6px 12px; font-size: 13px;" id="filterBtn">⚙️ 筛选</button>
+                        <button class="btn btn-secondary" id="statPageBtn" onclick="toggleStatPage()"
+                            style="padding: 6px 12px; font-size: 13px;">下一页 ▼</button>
                     </div>
                 </div>
                 <table class="stat-table">
@@ -683,6 +686,10 @@
                     <tr>
                         <th>检测总量</th>
                         <td id="totalCheckCount">400</td>
+                    </tr>
+                    <tr>
+                        <th>异常数</th>
+                        <td id="anomalyCount">0</td>
                     </tr>
                     <tr>
                         <th>问题类型</th>
@@ -865,14 +872,18 @@
             const table = document.querySelector('.stat-table');
             const btn = document.getElementById('statPageBtn');
 
-            // 删除现有的问题类型行（保留前4行表头）
-            while (table.rows.length > 4) {
-                table.deleteRow(4);
+            // 删除现有的问题类型行（保留前5行表头，包括新增的异常数行）
+            while (table.rows.length > 5) {
+                table.deleteRow(5);
             }
 
             // 更新总体统计 - 检测总量等于所有问题数量之和
             const totalCheckCount = stats.total_issues || 0;
             document.getElementById('totalCheckCount').textContent = totalCheckCount;
+
+            // 更新异常数
+            const anomalyCount = stats.anomaly_count || 0;
+            document.getElementById('anomalyCount').textContent = anomalyCount;
 
             // 调试：打印接收到的数据
             console.log('接收到的统计数据:', stats);
@@ -1506,7 +1517,7 @@
             document.getElementById('endDate').value = today.toISOString().split('T')[0];
 
             // 点击弹窗外部关闭弹窗
-            document.getElementById('filterModal').addEventListener('click', function(e) {
+            document.getElementById('filterModal').addEventListener('click', function (e) {
                 if (e.target === this) {
                     closeFilterModal();
                 }
