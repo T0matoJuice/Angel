@@ -232,6 +232,137 @@
             align-items: center;
         }
 
+        /* 筛选弹窗样式 */
+        .filter-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(3px);
+        }
+
+        .filter-modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 25px;
+            border-radius: 12px;
+            width: 450px;
+            max-width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .filter-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .filter-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .filter-modal-close {
+            font-size: 28px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .filter-modal-close:hover {
+            color: #333;
+        }
+
+        .filter-checkbox-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .filter-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: #f8f9fa;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        .filter-checkbox-item:hover {
+            background: #e9ecef;
+        }
+
+        .filter-checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .filter-checkbox-item label {
+            cursor: pointer;
+            font-size: 14px;
+            color: #333;
+            flex: 1;
+        }
+
+        .filter-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .filter-btn {
+            background: linear-gradient(45deg, var(--grad-left), var(--grad-right));
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+        }
+
+        .filter-btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
         .selected-tag {
             display: inline-flex;
             align-items: center;
@@ -535,8 +666,10 @@
             <div class="chart-card">
                 <div class="chart-header">
                     <span class="chart-title">统计信息</span>
-                    <button class="btn btn-secondary" id="statPageBtn" onclick="toggleStatPage()"
-                        style="padding: 6px 12px; font-size: 13px;">下一页 ▼</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" onclick="openFilterModal()" style="padding: 6px 12px; font-size: 13px;" id="filterBtn">⚙️ 筛选</button>
+                        <button class="btn btn-secondary" id="statPageBtn" onclick="toggleStatPage()" style="padding: 6px 12px; font-size: 13px;">下一页 ▼</button>
+                    </div>
                 </div>
                 <table class="stat-table">
                     <tr>
@@ -646,8 +779,10 @@
         let pageSize = 10; // 每页显示数量
         let currentDisplayData = []; // 当前显示的明细数据
         let issueTypePage = 1; // 问题类型当前页 (1=前6条, 2=后6条)
+        let filteredIssueTypes = null; // 筛选后的问题类型列表（null表示显示全部）
+        let filterModalInitialized = false; // 标记弹窗是否已初始化
 
-        /* 问题类型配置 - 12个问题类型，支持分页显示 */
+        /* 问题类型配置 - 12个问题类型，与后端保持一致 */
         const issueTypes = [
             { name: '尺寸错误', color: '#ff6384' },              // result_1
             { name: '人员参数检查', color: '#36a2eb' },          // result_2
@@ -725,7 +860,7 @@
             updateDetailsTable(details);
         }
 
-        /* 渲染统计表格的问题类型（支持分页） */
+        /* 渲染统计表格的问题类型（支持分页和筛选） */
         function renderStatTable(stats) {
             const table = document.querySelector('.stat-table');
             const btn = document.getElementById('statPageBtn');
@@ -743,14 +878,17 @@
             console.log('接收到的统计数据:', stats);
             console.log('问题类型数据:', stats.issue_types);
 
-            // 计算要显示的问题类型范围
-            const startIndex = (issueTypePage - 1) * 6;
-            const endIndex = Math.min(startIndex + 6, issueTypes.length);
+            // 确定要显示的问题类型列表（考虑筛选）
+            const typesToShow = filteredIssueTypes || issueTypes;
 
-            // 添加问题类型行 - 直接遍历issueTypes并显示对应的数量
+            // 计算要显示的问题类型范围（每页6个）
+            const startIndex = (issueTypePage - 1) * 6;
+            const endIndex = Math.min(startIndex + 6, typesToShow.length);
+
+            // 添加问题类型行
             for (let i = startIndex; i < endIndex; i++) {
                 const row = table.insertRow();
-                const typeName = issueTypes[i].name;
+                const typeName = typesToShow[i].name;
                 const count = stats.issue_types[typeName] || 0;
 
                 console.log(`问题类型: ${typeName}, 数量: ${count}`);
@@ -761,18 +899,35 @@
                 `;
             }
 
-            // 更新按钮文字
-            if (issueTypePage === 1) {
-                btn.innerHTML = '下一页 ▼';
+            // 更新分页按钮状态
+            if (typesToShow.length <= 6) {
+                // 如果只有一页，禁用分页按钮
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.innerHTML = '无更多';
             } else {
-                btn.innerHTML = '上一页 ▲';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                if (issueTypePage === 1) {
+                    btn.innerHTML = '下一页 ▼';
+                } else {
+                    btn.innerHTML = '上一页 ▲';
+                }
             }
         }
 
         /* 切换统计信息分页 */
         function toggleStatPage() {
+            // 确定总页数（考虑筛选状态）
+            const typesToShow = filteredIssueTypes || issueTypes;
+            const totalPages = Math.ceil(typesToShow.length / 6);
+
             // 切换页码
-            issueTypePage = issueTypePage === 1 ? 2 : 1;
+            if (issueTypePage >= totalPages) {
+                issueTypePage = 1;
+            } else {
+                issueTypePage++;
+            }
 
             // 重新渲染统计表格
             if (currentData && currentData.statistics) {
@@ -1222,6 +1377,124 @@
             loadData();
         }
 
+        /* 筛选功能相关函数 */
+        /* 打开筛选弹窗 */
+        function openFilterModal() {
+            const modal = document.getElementById('filterModal');
+            modal.style.display = 'block';
+
+            // 初始化弹窗内容（只执行一次）
+            if (!filterModalInitialized) {
+                initializeFilterModal();
+                filterModalInitialized = true;
+            }
+        }
+
+        /* 关闭筛选弹窗 */
+        function closeFilterModal() {
+            const modal = document.getElementById('filterModal');
+            modal.style.display = 'none';
+        }
+
+        /* 初始化筛选弹窗（生成复选框） */
+        function initializeFilterModal() {
+            const grid = document.getElementById('filterCheckboxGrid');
+            grid.innerHTML = '';
+
+            // 为每个问题类型创建复选框
+            issueTypes.forEach(type => {
+                const item = document.createElement('div');
+                item.className = 'filter-checkbox-item';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `filter_${type.name}`;
+                checkbox.value = type.name;
+                checkbox.checked = true; // 默认全部选中
+
+                const label = document.createElement('label');
+                label.htmlFor = `filter_${type.name}`;
+                label.textContent = type.name;
+
+                item.appendChild(checkbox);
+                item.appendChild(label);
+                grid.appendChild(item);
+
+                // 点击整个项也能切换复选框
+                item.addEventListener('click', (e) => {
+                    if (e.target !== checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                    }
+                });
+            });
+        }
+
+        /* 应用筛选 */
+        function applyFilter() {
+            const checkboxes = document.querySelectorAll('#filterCheckboxGrid input[type="checkbox"]:checked');
+            const selectedTypes = Array.from(checkboxes).map(cb => cb.value);
+
+            if (selectedTypes.length === 0) {
+                alert('请至少选择一个问题类型！');
+                return;
+            }
+
+            if (selectedTypes.length === issueTypes.length) {
+                // 如果全部选中，则相当于不筛选
+                filteredIssueTypes = null;
+            } else {
+                // 保存筛选后的问题类型列表
+                filteredIssueTypes = issueTypes.filter(type => selectedTypes.includes(type.name));
+            }
+
+            // 重置分页到第一页
+            issueTypePage = 1;
+
+            // 关闭弹窗
+            closeFilterModal();
+
+            // 更新按钮文字
+            const filterBtn = document.getElementById('filterBtn');
+            if (filteredIssueTypes) {
+                filterBtn.textContent = `⚙️ 筛选 (${selectedTypes.length})`;
+                filterBtn.style.background = 'linear-gradient(45deg, var(--grad-left), var(--grad-right))';
+                filterBtn.style.color = 'white';
+            } else {
+                filterBtn.textContent = '⚙️ 筛选';
+                filterBtn.style.background = '#f8f9fa';
+                filterBtn.style.color = '#333';
+            }
+
+            // 重新渲染统计表格
+            if (currentData && currentData.statistics) {
+                renderStatTable(currentData.statistics);
+            }
+        }
+
+        /* 重置筛选 */
+        function resetFilter() {
+            // 重置所有复选框为选中状态
+            const checkboxes = document.querySelectorAll('#filterCheckboxGrid input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+
+            // 重置筛选状态
+            filteredIssueTypes = null;
+            issueTypePage = 1;
+
+            // 更新按钮文字
+            const filterBtn = document.getElementById('filterBtn');
+            filterBtn.textContent = '⚙️ 筛选';
+            filterBtn.style.background = '#f8f9fa';
+            filterBtn.style.color = '#333';
+
+            // 关闭弹窗
+            closeFilterModal();
+
+            // 重新渲染统计表格
+            if (currentData && currentData.statistics) {
+                renderStatTable(currentData.statistics);
+            }
+        }
 
         /* 页面加载时初始化 */
         window.onload = () => {
@@ -1229,13 +1502,37 @@
             const today = new Date();
             const sixMonthsAgo = new Date(today);
             sixMonthsAgo.setMonth(today.getMonth() - 6);
-
             document.getElementById('startDate').value = sixMonthsAgo.toISOString().split('T')[0];
             document.getElementById('endDate').value = today.toISOString().split('T')[0];
 
+            // 点击弹窗外部关闭弹窗
+            document.getElementById('filterModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeFilterModal();
+                }
+            });
+
+            // 加载数据
             loadData();
         };
     </script>
+
+    <!-- 筛选弹窗 -->
+    <div id="filterModal" class="filter-modal">
+        <div class="filter-modal-content">
+            <div class="filter-modal-header">
+                <span class="filter-modal-title">选择要显示的问题类型</span>
+                <span class="filter-modal-close" onclick="closeFilterModal()">&times;</span>
+            </div>
+            <div class="filter-checkbox-grid" id="filterCheckboxGrid">
+                <!-- 复选框将由JavaScript动态生成 -->
+            </div>
+            <div class="filter-modal-footer">
+                <button class="filter-btn filter-btn-secondary" onclick="resetFilter()">重置</button>
+                <button class="filter-btn" onclick="applyFilter()">确定</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
