@@ -80,3 +80,8 @@ def init_app_config(app):
     # 会话配置（用于Flask-Login）
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
     app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # 会话有效期：24小时
+    
+    # 零件数据定时同步配置
+    app.config['PART_SYNC_ENABLED'] = os.getenv('PART_SYNC_ENABLED', 'true').lower() == 'true'
+    app.config['PART_SYNC_HOUR'] = int(os.getenv('PART_SYNC_HOUR', '3'))  # 默认凌晨3点
+    app.config['PART_SYNC_MINUTE'] = int(os.getenv('PART_SYNC_MINUTE', '0'))  # 默认0分
