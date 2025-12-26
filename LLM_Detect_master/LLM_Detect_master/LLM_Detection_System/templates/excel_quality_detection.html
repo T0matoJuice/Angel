@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -60,6 +61,7 @@
                 opacity: 0;
                 transform: translateY(30px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -300,7 +302,8 @@
             line-height: 1.6;
         }
 
-        .error-message, .success-message {
+        .error-message,
+        .success-message {
             display: none;
             padding: 15px;
             border-radius: 8px;
@@ -350,8 +353,13 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         @keyframes slideDown {
@@ -359,6 +367,7 @@
                 transform: translateY(-50px) scale(0.9);
                 opacity: 0;
             }
+
             to {
                 transform: translateY(0) scale(1);
                 opacity: 1;
@@ -586,6 +595,7 @@
         }
     </style>
 </head>
+
 <body>
     <a href="/excel" class="back-btn">
         <span>←</span>
@@ -694,7 +704,8 @@
             </div>
             <div class="modal-footer">
                 <button class="modal-btn modal-btn-cancel" onclick="closeConfirmModal()">取消</button>
-                <button class="modal-btn modal-btn-confirm" id="confirmUploadBtn" onclick="confirmUpload()">确认上传</button>
+                <button class="modal-btn modal-btn-confirm" id="confirmUploadBtn"
+                    onclick="confirmUpload()">确认上传</button>
             </div>
         </div>
     </div>
@@ -712,24 +723,24 @@
         const fileDetails = document.getElementById('fileDetails');
         const processButton = document.getElementById('processButton');
 
-        fileInput.addEventListener('change', function(e) {
+        fileInput.addEventListener('change', function (e) {
             handleFileSelect();
         });
-        
+
         // 拖拽上传功能
         uploadSection.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadSection.classList.add('dragover');
         });
-        
+
         uploadSection.addEventListener('dragleave', () => {
             uploadSection.classList.remove('dragover');
         });
-        
+
         uploadSection.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadSection.classList.remove('dragover');
-            
+
             const files = e.dataTransfer.files;
             if (files.length > 0) {
                 // 拖拽文件时直接处理
@@ -747,7 +758,7 @@
                 console.log('没有选择文件');
                 return;
             }
-            
+
             validateAndShowModal(file);
         }
 
@@ -760,7 +771,7 @@
             const validTypes = ['.xlsx', '.xls'];
             const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
             console.log('文件扩展名:', fileExtension);
-            
+
             if (!validTypes.includes(fileExtension)) {
                 console.log('文件格式不正确');
                 showError('请选择Excel文件(.xlsx或.xls格式)');
@@ -780,23 +791,23 @@
         // 显示确认弹窗
         function showConfirmModal(file) {
             console.log('showConfirmModal 被调用');
-            
+
             // 填充文件信息
             const fileNameEl = document.getElementById('confirmFileName');
             const fileSizeEl = document.getElementById('confirmFileSize');
             const fileTypeEl = document.getElementById('confirmFileType');
             const modalEl = document.getElementById('confirmModal');
-            
+
             console.log('DOM元素:', {
                 fileNameEl: !!fileNameEl,
                 fileSizeEl: !!fileSizeEl,
                 fileTypeEl: !!fileTypeEl,
                 modalEl: !!modalEl
             });
-            
+
             if (fileNameEl) fileNameEl.textContent = file.name;
             if (fileSizeEl) fileSizeEl.textContent = formatFileSize(file.size);
-            
+
             // 根据文件扩展名显示类型
             const ext = file.name.split('.').pop().toLowerCase();
             const typeMap = {
@@ -861,63 +872,67 @@
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    currentFile = data.filename;
-                    originalFileName = file.name;
-                    const uniqueFilename = data.unique_filename;
-                    
-                    console.log('上传成功，准备跳转到结果页面');
-                    console.log('unique_filename:', uniqueFilename);
-                    console.log('original_filename:', originalFileName);
-                    
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        currentFile = data.filename;
+                        originalFileName = file.name;
+                        const uniqueFilename = data.unique_filename;
+
+                        console.log('上传成功，准备跳转到结果页面');
+                        console.log('unique_filename:', uniqueFilename);
+                        console.log('original_filename:', originalFileName);
+
+                        hideProgress();
+                        showSuccess('文件上传成功，正在跳转...');
+
+                        // 调用成功回调
+                        if (onSuccess) onSuccess();
+
+                        // 立即跳转到结果页面
+                        setTimeout(() => {
+                            const params = new URLSearchParams({
+                                filename: currentFile,
+                                original_filename: originalFileName,
+                                unique_filename: uniqueFilename
+                            });
+                            window.location.href = `/excel/quality-check/result?${params.toString()}`;
+                        }, 500); // 0.5秒后跳转，让用户看到成功提示
+
+                    } else {
+                        // 上传失败时，先关闭弹窗，再显示错误
+                        closeConfirmModal();
+                        hideProgress();
+                        showError((data.error || '上传失败') + '，请重新上传');
+
+                        // 调用失败回调
+                        if (onError) onError();
+                    }
+                })
+                .catch(error => {
+                    // 上传失败时，先关闭弹窗，再显示错误
+                    closeConfirmModal();
                     hideProgress();
-                    showSuccess('文件上传成功，正在跳转...');
-                    
-                    // 调用成功回调
-                    if (onSuccess) onSuccess();
-                    
-                    // 立即跳转到结果页面
-                    setTimeout(() => {
-                        const params = new URLSearchParams({
-                            filename: currentFile,
-                            original_filename: originalFileName,
-                            unique_filename: uniqueFilename
-                        });
-                        window.location.href = `/excel/quality-check/result?${params.toString()}`;
-                    }, 500); // 0.5秒后跳转，让用户看到成功提示
-                    
-                } else {
-                    showError(data.error || '上传失败');
-                    hideProgress();
-                    
+                    showError('上传失败: ' + error.message + '，请重新上传');
+
                     // 调用失败回调
                     if (onError) onError();
-                }
-            })
-            .catch(error => {
-                showError('上传失败: ' + error.message);
-                hideProgress();
-                
-                // 调用失败回调
-                if (onError) onError();
-            });
+                });
         }
 
         // 格式化文件大小
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 B';
-            
+
             const k = 1024;
             const sizes = ['B', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
-            
+
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
         // 点击弹窗外部关闭
-        document.getElementById('confirmModal').addEventListener('click', function(e) {
+        document.getElementById('confirmModal').addEventListener('click', function (e) {
             if (e.target === this) {
                 closeConfirmModal();
             }
@@ -951,7 +966,7 @@
             const progressSection = document.getElementById('progressSection');
             const progressFill = document.getElementById('progressFill');
             const progressText = document.getElementById('progressText');
-            
+
             progressSection.style.display = 'block';
             progressFill.style.width = percent + '%';
             progressText.textContent = text;
@@ -965,7 +980,7 @@
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
-            
+
             setTimeout(() => {
                 errorDiv.style.display = 'none';
             }, 5000);
@@ -975,11 +990,12 @@
             const successDiv = document.getElementById('successMessage');
             successDiv.textContent = message;
             successDiv.style.display = 'block';
-            
+
             setTimeout(() => {
                 successDiv.style.display = 'none';
             }, 3000);
         }
     </script>
 </body>
+
 </html>
