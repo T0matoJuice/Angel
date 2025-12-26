@@ -677,23 +677,29 @@
                 <table class="stat-table">
                     <tr>
                         <th>日期范围</th>
-                        <td id="dateRangeText">2025-06 至 2025-10</td>
+                        <td id="dateRangeText" colspan="3">2025-06 至 2025-10</td>
                     </tr>
                     <tr>
                         <th>检测图纸总数</th>
-                        <td id="totalDrawings">1000</td>
+                        <td id="totalDrawings" colspan="3">1000</td>
                     </tr>
                     <tr>
                         <th>检测总量</th>
-                        <td id="totalCheckCount">400</td>
+                        <td id="totalCheckCount" colspan="3">400</td>
                     </tr>
                     <tr>
-                        <th>异常数</th>
-                        <td id="anomalyCount">0</td>
+                        <th>异常总数</th>
+                        <td id="anomalyCount" colspan="3">0</td>
+                    </tr>
+                    <tr>
+                        <th>总准确率</th>
+                        <td id="totalAccuracyRate" colspan="3">100%</td>
                     </tr>
                     <tr>
                         <th>问题类型</th>
                         <th>问题数量</th>
+                        <th>异常数</th>
+                        <th>准确率</th>
                     </tr>
                     <!-- 问题类型统计行将由JavaScript动态渲染 -->
                 </table>
@@ -872,22 +878,28 @@
             const table = document.querySelector('.stat-table');
             const btn = document.getElementById('statPageBtn');
 
-            // 删除现有的问题类型行（保留前5行表头，包括新增的异常数行）
-            while (table.rows.length > 5) {
-                table.deleteRow(5);
+            // 删除现有的问题类型行（保留前6行表头，包括异常总数和总准确率行）
+            while (table.rows.length > 6) {
+                table.deleteRow(6);
             }
 
             // 更新总体统计 - 检测总量等于所有问题数量之和
             const totalCheckCount = stats.total_issues || 0;
             document.getElementById('totalCheckCount').textContent = totalCheckCount;
 
-            // 更新异常数
+            // 更新异常总数
             const anomalyCount = stats.anomaly_count || 0;
             document.getElementById('anomalyCount').textContent = anomalyCount;
+
+            // 更新总准确率
+            const totalAccuracyRate = stats.total_accuracy_rate !== undefined ? stats.total_accuracy_rate : 100;
+            document.getElementById('totalAccuracyRate').textContent = totalAccuracyRate + '%';
 
             // 调试：打印接收到的数据
             console.log('接收到的统计数据:', stats);
             console.log('问题类型数据:', stats.issue_types);
+            console.log('问题类型异常数:', stats.issue_types_anomaly);
+            console.log('问题类型准确率:', stats.issue_types_accuracy);
 
             // 确定要显示的问题类型列表（考虑筛选）
             const typesToShow = filteredIssueTypes || issueTypes;
@@ -896,17 +908,21 @@
             const startIndex = (issueTypePage - 1) * 6;
             const endIndex = Math.min(startIndex + 6, typesToShow.length);
 
-            // 添加问题类型行
+            // 添加问题类型行（包含问题数量、异常数、准确率）
             for (let i = startIndex; i < endIndex; i++) {
                 const row = table.insertRow();
                 const typeName = typesToShow[i].name;
                 const count = stats.issue_types[typeName] || 0;
+                const anomaly = stats.issue_types_anomaly ? (stats.issue_types_anomaly[typeName] || 0) : 0;
+                const accuracy = stats.issue_types_accuracy ? (stats.issue_types_accuracy[typeName] || 100) : 100;
 
-                console.log(`问题类型: ${typeName}, 数量: ${count}`);
+                console.log(`问题类型: ${typeName}, 数量: ${count}, 异常数: ${anomaly}, 准确率: ${accuracy}%`);
 
                 row.innerHTML = `
                     <td>${typeName}</td>
                     <td>${count}</td>
+                    <td>${anomaly}</td>
+                    <td>${accuracy}%</td>
                 `;
             }
 
