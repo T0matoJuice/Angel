@@ -59,6 +59,11 @@ from modules.excel.scheduler import init_scheduler
 scheduler_manager = init_scheduler(app)
 print("✅ 定时同步任务调度器已初始化")
 
+# 初始化零件数据定时同步调度器
+from modules.drawing.scheduler import init_part_scheduler
+part_scheduler = init_part_scheduler(app)
+print("✅ 零件数据定时同步调度器已初始化")
+
 # 注册蓝图 - Web界面
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(common_bp)
@@ -74,6 +79,10 @@ app.register_blueprint(excel_api_bp, url_prefix='/api/v1/excel')
 # 注册同步管理API
 from modules.excel.sync_api import sync_management_bp
 app.register_blueprint(sync_management_bp)
+
+# 注册零件数据同步管理API
+from modules.drawing.sync_api import part_sync_api_bp
+app.register_blueprint(part_sync_api_bp)
 
 if __name__ == '__main__':
     print("==== 大模型智能检测系统 ====")
