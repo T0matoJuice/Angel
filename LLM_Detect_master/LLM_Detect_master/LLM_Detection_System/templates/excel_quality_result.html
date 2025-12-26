@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -78,7 +79,8 @@
             max-height: calc(100vh - 300px);
         }
 
-        .left-panel, .right-panel {
+        .left-panel,
+        .right-panel {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 15px;
             padding: 20px;
@@ -100,7 +102,8 @@
         }
 
         /* 当只显示一个面板时占满宽度 */
-        .left-panel.full-width, .right-panel.full-width {
+        .left-panel.full-width,
+        .right-panel.full-width {
             flex: 1;
         }
 
@@ -126,34 +129,35 @@
             max-height: 100%;
             position: relative;
         }
-        
+
         /* 增强滚动条样式 - 使其更明显 */
         .table-container::-webkit-scrollbar {
             width: 14px;
             height: 14px;
             background: #f8f9fa;
         }
-        
+
         .table-container::-webkit-scrollbar-track {
             background: #e9ecef;
             border-radius: 0;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
         }
-        
+
         .table-container::-webkit-scrollbar-thumb {
             background: linear-gradient(45deg, #20c997, #17a2b8);
             border-radius: 7px;
             border: 2px solid #e9ecef;
         }
-        
+
         .table-container::-webkit-scrollbar-thumb:hover {
             background: linear-gradient(45deg, #17a2b8, #20c997);
             border: 2px solid #dee2e6;
         }
-        
+
         .table-container::-webkit-scrollbar-corner {
             background: #e9ecef;
         }
+
         .data-table {
             width: 100%;
             min-width: 1500px;
@@ -181,10 +185,17 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        .basis-cell { white-space: pre-line; max-width: 400px; }
-        .diff-highlight { background: #fff3cd !important; }
 
-        
+        .basis-cell {
+            white-space: pre-line;
+            max-width: 400px;
+        }
+
+        .diff-highlight {
+            background: #fff3cd !important;
+        }
+
+
 
         .right-panel .data-table td {
             max-width: 120px;
@@ -215,8 +226,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .actions {
@@ -269,12 +285,14 @@
                 max-height: none;
             }
 
-            .left-panel, .right-panel {
+            .left-panel,
+            .right-panel {
                 flex: none;
                 min-height: 400px;
             }
-            
-            .left-panel.full-width, .right-panel.full-width {
+
+            .left-panel.full-width,
+            .right-panel.full-width {
                 width: 100%;
             }
 
@@ -287,7 +305,8 @@
                 min-width: 1000px;
             }
 
-            .data-table th, .data-table td {
+            .data-table th,
+            .data-table td {
                 padding: 8px 4px;
             }
 
@@ -299,6 +318,7 @@
         }
     </style>
 </head>
+
 <body>
     <a href="/excel" class="back-btn">
         <span>←</span>
@@ -313,7 +333,8 @@
                 <p>大模型正在处理中，请稍候...</p>
             </div>
         </div>
-        <div class="processing-time" id="processingTime" style="display: none; margin-top: 15px; padding: 10px; background: rgba(32, 201, 151, 0.1); border-radius: 8px; border-left: 4px solid #20c997;">
+        <div class="processing-time" id="processingTime"
+            style="display: none; margin-top: 15px; padding: 10px; background: rgba(32, 201, 151, 0.1); border-radius: 8px; border-left: 4px solid #20c997;">
             <strong>⏱️ 处理耗时:</strong> <span id="timeDisplay">0秒</span>
         </div>
     </div>
@@ -370,16 +391,20 @@
         const filename = urlParams.get('filename');
         const originalFilename = urlParams.get('original_filename');
         const uniqueFilename = urlParams.get('unique_filename');
-        
+
         // 轮询相关变量
         let pollingInterval = null;
         let pollCount = 0;
         let isPollingActive = false;  // 轮询状态标志
         const MAX_POLL_COUNT = 300; // 最多轮询5分钟（每2秒一次）
 
+        // 网络错误计数
+        let networkErrorCount = 0;
+        const MAX_NETWORK_ERRORS = 5; // 连续5次网络错误后显示提示
+
         // 记录开始时间
         const startTime = Date.now();
-        
+
         // 页面加载时立即加载原始数据
         loadOriginalTableFromFile();
 
@@ -395,9 +420,9 @@
             document.getElementById('originalPanel').style.display = 'flex';
             document.getElementById('originalPanel').classList.add('full-width');
             document.getElementById('resultPanel').style.display = 'none';
-            
+
             // 显示处理中的提示
-            document.getElementById('originalTable').innerHTML = 
+            document.getElementById('originalTable').innerHTML =
                 `<tbody><tr><td colspan="100%" class="loading">
                     <div class="loading-spinner"></div>
                     <div style="margin-top: 10px;">
@@ -405,38 +430,38 @@
                         <span id="statusText">数据已上传，正在排队等待检测</span>
                     </div>
                 </td></tr></tbody>`;
-            
+
             // 开始轮询检测状态
             startPolling();
         }
-        
+
         function startPolling() {
             console.log('开始轮询检测状态，unique_filename:', uniqueFilename);
-            
+
             if (isPollingActive) {
                 console.log('⚠️ 轮询已在运行中，跳过');
                 return;
             }
-            
+
             isPollingActive = true;
-            
+
             // 立即检查一次
             checkDetectionStatus();
-            
+
             // 每2秒检查一次
             pollingInterval = setInterval(() => {
                 pollCount++;
-                
+
                 if (pollCount >= MAX_POLL_COUNT) {
                     stopPolling();
                     showError('检测超时，请刷新页面重试');
                     return;
                 }
-                
+
                 checkDetectionStatus();
             }, 2000);
         }
-        
+
         function stopPolling() {
             console.log('🛑 停止轮询');
             isPollingActive = false;
@@ -446,14 +471,14 @@
                 console.log('✅ 轮询interval已清除');
             }
         }
-        
+
         function checkDetectionStatus() {
             // 如果轮询已停止，不再发送请求
             if (!isPollingActive || pollingInterval === null) {
                 console.log('⏹️ 轮询已停止，跳过请求');
                 return;
             }
-            
+
             fetch('/excel/quality-process', {
                 method: 'POST',
                 headers: {
@@ -465,65 +490,99 @@
                     unique_filename: uniqueFilename
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                console.log('检测状态:', data);
-                
-                if (data.status === 'pending') {
-                    // 排队中
-                    updateStatus('⏳ 检测任务排队中，请稍候...');
-                    
-                } else if (data.status === 'processing') {
-                    // 处理中
-                    updateStatus('🔍 正在进行AI检测，请稍候...');
-                    
-                } else if (data.status === 'completed' && data.success) {
-                    // 检测完成 - 立即停止轮询
-                    console.log('✅ 检测完成，停止轮询');
-                    stopPolling();
-                    handleDetectionComplete(data);
-                    
-                } else if (data.status === 'failed') {
-                    // 检测失败 - 停止轮询
-                    console.log('❌ 检测失败，停止轮询');
-                    stopPolling();
-                    showError('检测失败，请重新上传文件');
-                    
-                } else if (data.error) {
-                    // 其他错误
-                    console.error('检测错误:', data.error);
-                    // 继续轮询，可能数据还在处理中
-                }
-            })
-            .catch(error => {
-                console.error('查询状态失败:', error);
-                // 继续轮询，不中断
-            });
+                .then(response => response.json())
+                .then(data => {
+                    console.log('检测状态:', data);
+                    // 请求成功，重置网络错误计数
+                    networkErrorCount = 0;
+
+                    if (data.status === 'pending') {
+                        // 排队中
+                        updateStatus('⏳ 检测任务排队中，请稍候...');
+
+                    } else if (data.status === 'processing') {
+                        // 处理中
+                        updateStatus('🔍 正在进行AI检测，请稍候...');
+
+                    } else if (data.status === 'completed' && data.success) {
+                        // 检测完成 - 立即停止轮询
+                        console.log('✅ 检测完成，停止轮询');
+                        stopPolling();
+                        handleDetectionComplete(data);
+
+                    } else if (data.status === 'failed') {
+                        // 检测失败 - 停止轮询
+                        console.log('❌ 检测失败，停止轮询');
+                        stopPolling();
+                        showError('检测失败，请重新上传文件');
+
+                    } else if (data.error) {
+                        // 其他错误
+                        console.error('检测错误:', data.error);
+                        // 继续轮询，可能数据还在处理中
+                    }
+                })
+                .catch(error => {
+                    console.error('查询状态失败:', error);
+                    networkErrorCount++;
+
+                    // 更新状态显示网络问题
+                    if (networkErrorCount >= MAX_NETWORK_ERRORS) {
+                        // 连续多次网络错误，显示错误提示
+                        stopPolling();
+                        showNetworkError(error.message);
+                    } else {
+                        // 显示临时网络问题提示，继续轮询
+                        updateStatus(`⚠️ 网络连接不稳定，正在重试... (${networkErrorCount}/${MAX_NETWORK_ERRORS})`);
+                    }
+                });
         }
-        
+
         function updateStatus(message) {
             const statusEl = document.getElementById('statusText');
             if (statusEl) {
                 statusEl.textContent = message;
             }
         }
-        
+
         function showError(message) {
             // 停止轮询
             stopPolling();
-            
+
             const resultInfo = document.getElementById('resultInfo');
             resultInfo.innerHTML = `<p style="color: red;">❌ ${message}</p>`;
-            document.getElementById('originalTable').innerHTML = 
+            document.getElementById('originalTable').innerHTML =
                 `<tbody><tr><td colspan="100%" style="color: red;">❌ ${message}</td></tr></tbody>`;
         }
-        
+
+        // 显示网络错误的友好提示
+        function showNetworkError(errorMessage) {
+            const resultInfo = document.getElementById('resultInfo');
+            resultInfo.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <p style="color: #dc3545; font-size: 18px; margin-bottom: 15px;">❌ 网络连接失败</p>
+                    <p style="color: #666; margin-bottom: 10px;">无法连接到服务器，可能的原因：</p>
+                    <ul style="text-align: left; color: #666; margin: 10px auto; max-width: 400px;">
+                        <li>服务器正在处理大量数据，暂时无法响应</li>
+                        <li>网络连接不稳定</li>
+                        <li>服务器正在重启或维护中</li>
+                    </ul>
+                    <p style="color: #666; margin-top: 15px;">错误详情: ${errorMessage}</p>
+                    <div style="margin-top: 20px;">
+                        <a href="/excel/quality-check" style="background: #20c997; color: white; border: none; padding: 12px 30px; border-radius: 5px; cursor: pointer; text-decoration: none; font-size: 16px;">📤 重新上传文件</a>
+                    </div>
+                </div>
+            `;
+            document.getElementById('originalTable').innerHTML =
+                `<tbody><tr><td colspan="100%" style="color: #666; text-align: center; padding: 30px;">请刷新页面重试或重新上传文件</td></tr></tbody>`;
+        }
+
         function handleDetectionComplete(data) {
             console.log('✅ 进入handleDetectionComplete，数据:', data);
-            
+
             // 确保轮询已停止
             stopPolling();
-            
+
             // 计算处理时间
             const endTime = Date.now();
             const processingTime = ((endTime - startTime) / 1000).toFixed(1);
@@ -547,39 +606,39 @@
 
             // 加载结果表格
             loadResultTable(data.csv_filename);
-            
+
             // 显示下载按钮
             const downloadExcel = document.getElementById('downloadExcel');
             const downloadCSV = document.getElementById('downloadCSV');
-            
+
             downloadExcel.href = `/excel/download/${data.excel_filename}`;
             downloadExcel.style.display = 'inline-block';
-            
+
             downloadCSV.href = `/excel/download/${data.csv_filename}`;
             downloadCSV.style.display = 'inline-block';
         }
-        
+
         function loadResultTable(csvFilename) {
             fetch(`/excel/get-result-data/${csvFilename}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    displayTable('resultTable', data.data, data.columns);
-                } else {
-                    document.getElementById('resultTable').innerHTML = 
-                        `<tbody><tr><td colspan="100%" style="color: red;">❌ ${data.error}</td></tr></tbody>`;
-                }
-            })
-            .catch(error => {
-                console.error('加载结果表格失败:', error);
-                document.getElementById('resultTable').innerHTML = 
-                    `<tbody><tr><td colspan="100%" style="color: red;">❌ 加载失败: ${error.message}</td></tr></tbody>`;
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayTable('resultTable', data.data, data.columns);
+                    } else {
+                        document.getElementById('resultTable').innerHTML =
+                            `<tbody><tr><td colspan="100%" style="color: red;">❌ ${data.error}</td></tr></tbody>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('加载结果表格失败:', error);
+                    document.getElementById('resultTable').innerHTML =
+                        `<tbody><tr><td colspan="100%" style="color: red;">❌ 加载失败: ${error.message}</td></tr></tbody>`;
+                });
         }
 
         function displayTable(tableId, data, columns) {
             const table = document.getElementById(tableId);
-            
+
             if (!data || data.length === 0) {
                 table.innerHTML = '<tbody><tr><td colspan="100%">暂无数据</td></tr></tbody>';
                 return;
@@ -607,11 +666,11 @@
             html += '</tbody>';
             table.innerHTML = html;
         }
-        
+
         // 从数据库加载原始表格（检测期间）
         function loadOriginalTableFromFile() {
             console.log('开始加载原始数据，unique_filename:', uniqueFilename);
-            
+
             // 更新状态显示
             document.getElementById('resultInfo').innerHTML = `
                 <div class="loading">
@@ -619,30 +678,35 @@
                     <p>正在加载原始数据...</p>
                 </div>
             `;
-            
+
             fetch(`/excel/get-original-data-from-db/${uniqueFilename}`)
-            .then(response => response.json())
-            .then(data => {
-                console.log('原始数据加载响应:', data);
-                if (data.success) {
-                    displayTable('originalTable', data.data, data.columns);
-                    
-                    // 数据加载完成后，立即检查检测状态
-                    checkDetectionStatusOnce();
-                } else {
-                    showError(data.error || '加载原始数据失败');
-                }
-            })
-            .catch(error => {
-                console.error('加载原始表格失败:', error);
-                showError('加载原始数据失败: ' + error.message);
-            });
+                .then(response => response.json())
+                .then(data => {
+                    console.log('原始数据加载响应:', data);
+                    if (data.success) {
+                        displayTable('originalTable', data.data, data.columns);
+
+                        // 数据加载完成后，立即检查检测状态
+                        checkDetectionStatusOnce();
+                    } else {
+                        showError(data.error || '加载原始数据失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('加载原始表格失败:', error);
+                    // 检查是否是网络错误
+                    if (error.message === 'Failed to fetch') {
+                        showNetworkError('无法连接到服务器，请检查网络连接后刷新页面重试');
+                    } else {
+                        showError('加载原始数据失败: ' + error.message);
+                    }
+                });
         }
-        
+
         // 检查一次检测状态（决定是显示原始数据还是结果）
         function checkDetectionStatusOnce() {
             console.log('检查当前检测状态...');
-            
+
             fetch('/excel/quality-process', {
                 method: 'POST',
                 headers: {
@@ -654,33 +718,33 @@
                     unique_filename: uniqueFilename
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                console.log('当前检测状态:', data);
-                
-                if (data.status === 'completed' && data.success) {
-                    // 已经完成，直接显示结果
-                    console.log('✅ 检测已完成，直接显示结果');
-                    handleDetectionComplete(data);
-                } else {
-                    // 未完成，显示处理中并开始轮询
-                    console.log('⏳ 检测进行中，开始轮询');
-                    document.getElementById('resultInfo').innerHTML = `
+                .then(response => response.json())
+                .then(data => {
+                    console.log('当前检测状态:', data);
+
+                    if (data.status === 'completed' && data.success) {
+                        // 已经完成，直接显示结果
+                        console.log('✅ 检测已完成，直接显示结果');
+                        handleDetectionComplete(data);
+                    } else {
+                        // 未完成，显示处理中并开始轮询
+                        console.log('⏳ 检测进行中，开始轮询');
+                        document.getElementById('resultInfo').innerHTML = `
                         <div class="loading">
                             <div class="loading-spinner"></div>
                             <p id="statusText">大模型正在处理中，请稍候...</p>
                         </div>
                     `;
+                        startPolling();
+                    }
+                })
+                .catch(error => {
+                    console.error('查询状态失败:', error);
+                    // 出错时也启动轮询
                     startPolling();
-                }
-            })
-            .catch(error => {
-                console.error('查询状态失败:', error);
-                // 出错时也启动轮询
-                startPolling();
-            });
+                });
         }
     </script>
 </body>
-</html>
 
+</html>
