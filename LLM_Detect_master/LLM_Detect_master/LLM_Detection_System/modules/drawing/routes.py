@@ -781,8 +781,30 @@ def drawing_get_chart_statistics():
         # 计算总问题数
         total_issues = sum(issue_types_count.values())
         
+        # result字段到问题类型的映射
+        result_to_issue_type = {
+            0: '尺寸错误',           # result_1
+            1: '人员参数检查',       # result_2
+            2: '缺少重点尺寸',       # result_3
+            3: 'LOGO检查',          # result_4
+            4: '名称检查',          # result_5
+            5: '缺少未注公差',       # result_6
+            6: '图标错误',          # result_7
+            7: '尺寸公差检测',       # result_8
+            8: '公差精确度检测',     # result_9
+            9: '技术要求检测',       # result_10
+            10: '版本错误',          # result_11
+            11: '缺少单一材质重量'    # result_12
+        }
+        
+        # 初始化每个问题类型的异常数和有效比较数
+        issue_types_anomaly = {k: 0 for k in issue_types_count.keys()}
+        issue_types_valid_count = {k: 0 for k in issue_types_count.keys()}
+        
         # 计算异常数：比较drawing_dataset和drawing_detection表中对应字段的差异
         anomaly_count = 0
+        total_valid_count = 0  # 有效比较总数（两个表都有数据的情况）
+        
         for record in records:
             # 查询 drawing_dataset 表中的记录
             dataset_sql = text("""
@@ -810,15 +832,44 @@ def drawing_get_chart_statistics():
                         for i in range(12):
                             dataset_val = dataset_row[i] if dataset_row[i] else ''
                             detection_val = detection_row[i] if detection_row[i] else ''
-                            # 如果两个值不相同，则计为异常
-                            if dataset_val != detection_val:
-                                anomaly_count += 1
+                            issue_type = result_to_issue_type.get(i)
+                            
+                            # 只有当两个表对应字段都有数据时才参与比较
+                            if dataset_val and detection_val:
+                                total_valid_count += 1
+                                if issue_type:
+                                    issue_types_valid_count[issue_type] += 1
+                                
+                                # 如果两个值不相同，则计为异常
+                                if dataset_val != detection_val:
+                                    anomaly_count += 1
+                                    if issue_type:
+                                        issue_types_anomaly[issue_type] += 1
+        
+        # 计算总准确率（有效比较数为分母，避免除零）
+        if total_valid_count > 0:
+            total_accuracy_rate = round((1 - anomaly_count / total_valid_count) * 100, 2)
+        else:
+            total_accuracy_rate = 100.0
+        
+        # 计算每个问题类型的准确率
+        issue_types_accuracy = {}
+        for issue_type in issue_types_count.keys():
+            valid_count = issue_types_valid_count.get(issue_type, 0)
+            anomaly = issue_types_anomaly.get(issue_type, 0)
+            if valid_count > 0:
+                accuracy = round((1 - anomaly / valid_count) * 100, 2)
+            else:
+                accuracy = 100.0
+            issue_types_accuracy[issue_type] = accuracy
         
         # 格式化日期范围
         date_range = f"{start_date[:7]} 至 {end_date[:7]}"
         
-        print(f"📈 统计结果: 总图纸={total_drawings}, 符合={compliant_count}, 不符合={non_compliant_count}, 总问题={total_issues}, 异常数={anomaly_count}")
+        print(f"📈 统计结果: 总图纸={total_drawings}, 符合={compliant_count}, 不符合={non_compliant_count}, 总问题={total_issues}, 异常总数={anomaly_count}, 总准确率={total_accuracy_rate}%")
         print(f"   问题分布: {issue_types_count}")
+        print(f"   异常分布: {issue_types_anomaly}")
+        print(f"   准确率分布: {issue_types_accuracy}")
         
         return jsonify({
             'success': True,
@@ -829,7 +880,10 @@ def drawing_get_chart_statistics():
                 'non_compliant_count': non_compliant_count,
                 'total_issues': total_issues,
                 'anomaly_count': anomaly_count,
+                'total_accuracy_rate': total_accuracy_rate,
                 'issue_types': issue_types_count,
+                'issue_types_anomaly': issue_types_anomaly,
+                'issue_types_accuracy': issue_types_accuracy,
                 'monthly_data': monthly_data
             },
             'details': details
